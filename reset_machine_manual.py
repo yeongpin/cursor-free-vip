@@ -93,6 +93,11 @@ def version_check(version: str, min_version: str = "", max_version: str = "", tr
 
 def check_cursor_version(translator) -> bool:
     """检查 Cursor 版本"""
+    # 如果环境变量中 设置了 CURSOR_VERSION 则使用环境变量中的版本号 如果没有设置 则正常读取版本号
+    version = os.getenv("CURSOR_VERSION")
+    if version:
+        return version_check(version, min_version="0.45.0", translator=translator)
+
     try:
         pkg_path, _ = get_cursor_paths(translator)
         with open(pkg_path, "r", encoding="utf-8") as f:
