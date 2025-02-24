@@ -1,3 +1,5 @@
+FORKED PROJECT , ALL CREDITS GO TO OWNER:
+
 # ➤ Cursor Free VIP
 <div align="center">
 <p align="center">
@@ -59,12 +61,12 @@ This is a tool to automatically register , support Windows and macOS systems, co
 
 **Linux/macOS**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/install.sh -o install.sh && chmod +x install.sh && ./install.sh
+curl -fsSL https://raw.githubusercontent.com/UntaDotMy/cursor-free-vip/main/scripts/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 **Windows**
 ```powershell
-irm https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/UntaDotMy/cursor-free-vip/main/scripts/install.ps1 | iex
 ```
 </details>
 
@@ -73,12 +75,12 @@ irm https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/inst
 
 **Linux/macOS**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/reset.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/UntaDotMy/cursor-free-vip/main/scripts/reset.sh | sudo bash
 ```
 
 **Windows**
 ```powershell
-irm https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/reset.ps1 | iex
+irm https://raw.githubusercontent.com/UntaDotMy/cursor-free-vip/main/scripts/reset.ps1 | iex
 ```
 </details>
 
@@ -135,7 +137,7 @@ This tool is only for learning and research purposes, and any consequences arisi
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yeongpin/cursor-free-vip&type=Date)](https://star-history.com/#yeongpin/cursor-free-vip&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=UntaDotMy/cursor-free-vip&type=Date)](https://star-history.com/#UntaDotMy/cursor-free-vip&Date)
 
 </div>
 
