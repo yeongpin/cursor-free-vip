@@ -126,14 +126,14 @@ jobs:
     - name: Build Linux executable
       run: |
         pyinstaller build.spec
-        # Rename the file to the final release name directly
-        mv "dist/CursorFreeVIP_${{ env.VERSION }}_linux" "dist/CursorFreeVIP_${{ env.VERSION }}_linux"
+        # List directory contents for debugging
+        ls -la dist/
         
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorFreeVIP_${{ env.VERSION }}_linux
-        path: dist/CursorFreeVIP_${{ env.VERSION }}_linux
+        path: dist/CursorFreeVIP
 
 
   build-macos-intel:
