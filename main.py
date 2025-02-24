@@ -25,7 +25,7 @@ EMOJI = {
 
 class Translator:
     def __init__(self):
-        self.current_language = 'zh_tw'  # 默认语言
+        self.current_language = 'en'  # Default language set to English
         self.translations = {}
         self.load_translations()
     
@@ -151,4 +151,4 @@ def main():
     input(f"{EMOJI['INFO']} {translator.get('menu.press_enter')}...{Style.RESET_ALL}")
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -179,7 +179,7 @@
     },
     "email": {
         "starting_browser": "启动浏览器",
-        "visiting_site": "访问 smailpro.com",
+        "visiting_site": "访问 mail.tm",
         "create_success": "邮箱创建成功",
         "create_failed": "邮箱创建失败",
         "create_error": "邮箱创建错误: {error}",

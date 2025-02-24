@@ -3,6 +3,9 @@ import time
 import os
 import sys
 from colorama import Fore, Style, init
+import requests
+import random
+import string
 
 # 初始化 colorama
 init()
@@ -10,95 +13,67 @@ init()
 class NewTempEmail:
     def __init__(self, translator=None):
         self.translator = translator
-        self.page = None
-        self.setup_browser()
+        self.api_url = "https://api.mail.tm"
+        self.token = None
+        self.email = None
+        self.password = None
         
-    def get_extension_block(self):
-        """获取插件路径"""
-        root_dir = os.getcwd()
-        extension_path = os.path.join(root_dir, "PBlock")
+    def _generate_credentials(self):
+        """生成随机用户名和密码"""
+        username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        password = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
+        return username, password
         
-        if hasattr(sys, "_MEIPASS"):
-            extension_path = os.path.join(sys._MEIPASS, "PBlock")
-
-        if not os.path.exists(extension_path):
-            raise FileNotFoundError(f"插件不存在: {extension_path}")
-
-        return extension_path
-        
-    def setup_browser(self):
-        """设置浏览器"""
-        try:
-            if self.translator:
-                print(f"{Fore.CYAN}ℹ️ {self.translator.get('email.starting_browser')}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.CYAN}ℹ️ 正在启动浏览器...{Style.RESET_ALL}")
-            
-            # 创建浏览器选项
-            co = ChromiumOptions()
-            co.set_argument("--headless=new")
-            
-            co.auto_port()  # 自动设置端口
-            
-            # 加载 uBlock 插件
-            try:
-                extension_path = self.get_extension_block()
-                co.set_argument("--allow-extensions-in-incognito")
-                co.add_extension(extension_path)
-            except Exception as e:
-                if self.translator:
-                    print(f"{Fore.YELLOW}⚠️ {self.translator.get('email.extension_load_error')}: {str(e)}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.YELLOW}⚠️ 加载插件失败: {str(e)}{Style.RESET_ALL}")
-            
-            self.page = ChromiumPage(co)
-            return True
-        except Exception as e:
-            if self.translator:
-                print(f"{Fore.RED}❌ {self.translator.get('email.browser_start_error')}: {str(e)}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}❌ 启动浏览器失败: {str(e)}{Style.RESET_ALL}")
-            return False
-            
     def create_email(self):
         """创建临时邮箱"""
         try:
             if self.translator:
                 print(f"{Fore.CYAN}ℹ️ {self.translator.get('email.visiting_site')}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.CYAN}ℹ️ 正在访问 smailpro.com...{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}ℹ️ 正在访问 mail.tm...{Style.RESET_ALL}")
             
-            # 访问网站
-            self.page.get("https://smailpro.com/")
-            time.sleep(2)
-            
-            # 点击创建邮箱按钮
-            create_button = self.page.ele('xpath://button[@title="Create temporary email"]')
-            if create_button:
-                create_button.click()
-                time.sleep(1)
+            # 获取可用域名列表
+            domains_response = requests.get(f"{self.api_url}/domains")
+            if domains_response.status_code != 200:
+                raise Exception("Failed to get available domains")
                 
-                # 点击弹窗中的 Create 按钮
-                modal_create_button = self.page.ele('xpath://button[contains(text(), "Create")]')
-                if modal_create_button:
-                    modal_create_button.click()
-                    time.sleep(2)
-                    
-                    # 获取邮箱地址 - 修改选择器
-                    email_div = self.page.ele('xpath://div[@class="text-base sm:text-lg md:text-xl text-gray-700"]')
-                    if email_div:
-                        email = email_div.text.strip()
-                        if '@' in email:  # 验证是否是有效的邮箱地址
-                            if self.translator:
-                                print(f"{Fore.GREEN}✅ {self.translator.get('email.create_success')}: {email}{Style.RESET_ALL}")
-                            else:
-                                print(f"{Fore.GREEN}✅ 创建邮箱成功: {email}{Style.RESET_ALL}")
-                            return email
+            domains = domains_response.json()["hydra:member"]
+            if not domains:
+                raise Exception("No available domains")
+                
+            # 生成随机用户名和密码
+            username, password = self._generate_credentials()
+            self.password = password
+            
+            # 创建邮箱账户
+            email = f"{username}@{domains[0]['domain']}"
+            account_data = {
+                "address": email,
+                "password": password
+            }
+            
+            create_response = requests.post(f"{self.api_url}/accounts", json=account_data)
+            if create_response.status_code != 201:
+                raise Exception("Failed to create account")
+                
+            # 获取访问令牌
+            token_data = {
+                "address": email,
+                "password": password
+            }
+            
+            token_response = requests.post(f"{self.api_url}/token", json=token_data)
+            if token_response.status_code != 200:
+                raise Exception("Failed to get access token")
+                
+            self.token = token_response.json()["token"]
+            self.email = email
+            
             if self.translator:
-                print(f"{Fore.RED}❌ {self.translator.get('email.create_failed')}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}✅ {self.translator.get('email.create_success')}: {email}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.RED}❌ 创建邮箱失败{Style.RESET_ALL}")
-            return None
+                print(f"{Fore.GREEN}✅ 创建邮箱成功: {email}{Style.RESET_ALL}")
+            return email
             
         except Exception as e:
             if self.translator:
@@ -120,11 +95,11 @@ class NewTempEmail:
             else:
                 print(f"{Fore.CYAN}🔄 正在刷新邮箱...{Style.RESET_ALL}")
             
-            # 点击刷新按钮
-            refresh_button = self.page.ele('xpath://button[@id="refresh"]')
-            if refresh_button:
-                refresh_button.click()
-                time.sleep(2)  # 等待刷新完成
+            # 使用 API 获取最新邮件
+            headers = {"Authorization": f"Bearer {self.token}"}
+            response = requests.get(f"{self.api_url}/messages", headers=headers)
+            
+            if response.status_code == 200:
                 if self.translator:
                     print(f"{Fore.GREEN}✅ {self.translator.get('email.refresh_success')}{Style.RESET_ALL}")
                 else:
@@ -132,9 +107,9 @@ class NewTempEmail:
                 return True
             
             if self.translator:
-                print(f"{Fore.RED}❌ {self.translator.get('email.refresh_button_not_found')}{Style.RESET_ALL}")
+                print(f"{Fore.RED}❌ {self.translator.get('email.refresh_failed')}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.RED}❌ 未找到刷新按钮{Style.RESET_ALL}")
+                print(f"{Fore.RED}❌ 刷新邮箱失败{Style.RESET_ALL}")
             return False
             
         except Exception as e:
@@ -147,17 +122,24 @@ class NewTempEmail:
     def check_for_cursor_email(self):
         """检查是否有 Cursor 的验证邮件"""
         try:
-            # 查找验证邮件 - 使用更精确的选择器
-            email_div = self.page.ele('xpath://div[contains(@class, "p-2") and contains(@class, "cursor-pointer") and contains(@class, "bg-white") and contains(@class, "shadow") and .//b[text()="no-reply@cursor.sh"] and .//span[text()="Verify your email address"]]')
-            if email_div:
-                if self.translator:
-                    print(f"{Fore.GREEN}✅ {self.translator.get('email.verification_found')}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.GREEN}✅ 找到验证邮件{Style.RESET_ALL}")
-                # 使用 JavaScript 点击元素
-                self.page.run_js('arguments[0].click()', email_div)
-                time.sleep(2)  # 等待邮件内容加载
-                return True
+            # 使用 API 获取邮件列表
+            headers = {"Authorization": f"Bearer {self.token}"}
+            response = requests.get(f"{self.api_url}/messages", headers=headers)
+            
+            if response.status_code == 200:
+                messages = response.json()["hydra:member"]
+                for message in messages:
+                    if message["from"]["address"] == "no-reply@cursor.sh" and "Verify your email address" in message["subject"]:
+                        # 获取邮件内容
+                        message_id = message["id"]
+                        message_response = requests.get(f"{self.api_url}/messages/{message_id}", headers=headers)
+                        if message_response.status_code == 200:
+                            if self.translator:
+                                print(f"{Fore.GREEN}✅ {self.translator.get('email.verification_found')}{Style.RESET_ALL}")
+                            else:
+                                print(f"{Fore.GREEN}✅ 找到验证邮件{Style.RESET_ALL}")
+                            return True
+                            
             if self.translator:
                 print(f"{Fore.YELLOW}⚠️ {self.translator.get('email.verification_not_found')}{Style.RESET_ALL}")
             else:
@@ -174,16 +156,33 @@ class NewTempEmail:
     def get_verification_code(self):
         """获取验证码"""
         try:
-            # 查找验证码元素
-            code_element = self.page.ele('xpath://td//div[contains(@style, "font-size:28px") and contains(@style, "letter-spacing:2px")]')
-            if code_element:
-                code = code_element.text.strip()
-                if code.isdigit() and len(code) == 6:
-                    if self.translator:
-                        print(f"{Fore.GREEN}✅ {self.translator.get('email.verification_code_found')}: {code}{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.GREEN}✅ 获取验证码成功: {code}{Style.RESET_ALL}")
-                    return code
+            # 使用 API 获取邮件列表
+            headers = {"Authorization": f"Bearer {self.token}"}
+            response = requests.get(f"{self.api_url}/messages", headers=headers)
+            
+            if response.status_code == 200:
+                messages = response.json()["hydra:member"]
+                for message in messages:
+                    if message["from"]["address"] == "no-reply@cursor.sh" and "Verify your email address" in message["subject"]:
+                        # 获取邮件内容
+                        message_id = message["id"]
+                        message_response = requests.get(f"{self.api_url}/messages/{message_id}", headers=headers)
+                        
+                        if message_response.status_code == 200:
+                            # 从邮件内容中提取验证码
+                            email_content = message_response.json()["text"]
+                            # 查找6位数字验证码
+                            import re
+                            code_match = re.search(r'\b\d{6}\b', email_content)
+                            
+                            if code_match:
+                                code = code_match.group(0)
+                                if self.translator:
+                                    print(f"{Fore.GREEN}✅ {self.translator.get('email.verification_code_found')}: {code}{Style.RESET_ALL}")
+                                else:
+                                    print(f"{Fore.GREEN}✅ 获取验证码成功: {code}{Style.RESET_ALL}")
+                                return code
+            
             if self.translator:
                 print(f"{Fore.YELLOW}⚠️ {self.translator.get('email.verification_code_not_found')}{Style.RESET_ALL}")
             else:
@@ -223,4 +222,4 @@ def main(translator=None):
         temp_email.close()
 
 if __name__ == "__main__":
-    main() 
+    main()

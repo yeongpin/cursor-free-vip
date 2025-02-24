@@ -76,10 +76,9 @@ class CursorRegistration:
                 print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.email_create_failed')}{Style.RESET_ALL}")
                 return False
             
-            # 保存邮箱地址和浏览器实例
+            # 保存邮箱地址
             self.email_address = email_address
-            self.email_tab = self.temp_email  # 传递 NewTempEmail 实例而不是 page
-            self.controller = BrowserControl(self.temp_email.page, self.translator)
+            self.email_tab = self.temp_email  # 传递 NewTempEmail 实例
             
             return True
             
