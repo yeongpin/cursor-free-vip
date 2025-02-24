@@ -25,42 +25,70 @@ EMOJI = {
 
 class Translator:
     def __init__(self):
-        self.current_language = 'en'  # Default language set to English
+        self.current_language = 'en'  # Default language
         self.translations = {}
+        self.fallback_language = 'en'  # Fallback language if translation is missing
         self.load_translations()
     
     def load_translations(self):
-        """加载所有可用的翻译"""
-        locales_dir = os.path.join(os.path.dirname(__file__), 'locales')
-        if hasattr(sys, '_MEIPASS'):
-            locales_dir = os.path.join(sys._MEIPASS, 'locales')
+        """Load all available translations"""
+        try:
+            locales_dir = os.path.join(os.path.dirname(__file__), 'locales')
+            if hasattr(sys, '_MEIPASS'):
+                locales_dir = os.path.join(sys._MEIPASS, 'locales')
             
-        for file in os.listdir(locales_dir):
-            if file.endswith('.json'):
-                lang_code = file[:-5]  # 移除 .json
-                with open(os.path.join(locales_dir, file), 'r', encoding='utf-8') as f:
-                    self.translations[lang_code] = json.load(f)
+            if not os.path.exists(locales_dir):
+                print(f"{Fore.RED}{EMOJI['ERROR']} Locales directory not found{Style.RESET_ALL}")
+                return
+
+            for file in os.listdir(locales_dir):
+                if file.endswith('.json'):
+                    lang_code = file[:-5]  # Remove .json
+                    try:
+                        with open(os.path.join(locales_dir, file), 'r', encoding='utf-8') as f:
+                            self.translations[lang_code] = json.load(f)
+                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                        print(f"{Fore.RED}{EMOJI['ERROR']} Error loading {file}: {e}{Style.RESET_ALL}")
+                        continue
+        except Exception as e:
+            print(f"{Fore.RED}{EMOJI['ERROR']} Failed to load translations: {e}{Style.RESET_ALL}")
     
     def get(self, key, **kwargs):
-        """获取翻译文本"""
+        """Get translated text with fallback support"""
+        try:
+            # Try current language
+            result = self._get_translation(self.current_language, key)
+            if result == key and self.current_language != self.fallback_language:
+                # Try fallback language if translation not found
+                result = self._get_translation(self.fallback_language, key)
+            return result.format(**kwargs) if kwargs else result
+        except Exception:
+            return key
+    
+    def _get_translation(self, lang_code, key):
+        """Get translation for a specific language"""
         try:
             keys = key.split('.')
-            value = self.translations.get(self.current_language, {})
+            value = self.translations.get(lang_code, {})
             for k in keys:
                 if isinstance(value, dict):
                     value = value.get(k, key)
                 else:
-                    return key  # 如果中間值不是字典，返回原始key
-            return value.format(**kwargs) if kwargs else value
+                    return key
+            return value
         except Exception:
-            return key  # 出現任何錯誤時返回原始key
+            return key
     
     def set_language(self, lang_code):
-        """设置当前语言"""
+        """Set current language with validation"""
         if lang_code in self.translations:
             self.current_language = lang_code
             return True
         return False
+
+    def get_available_languages(self):
+        """Get list of available languages"""
+        return list(self.translations.keys())
 
 # 创建翻译器实例
 translator = Translator()
@@ -79,25 +107,26 @@ def print_menu():
     print(f"{Fore.YELLOW}{'─' * 40}{Style.RESET_ALL}")
 
 def select_language():
-    """语言选择菜单"""
+    """Language selection menu"""
     print(f"\n{Fore.CYAN}{EMOJI['LANG']} {translator.get('menu.select_language')}:{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}{'─' * 40}{Style.RESET_ALL}")
     
-    languages = translator.get('languages')
-    for i, (code, name) in enumerate(languages.items()):
-        print(f"{Fore.GREEN}{i}{Style.RESET_ALL}. {name}")
+    languages = translator.get_available_languages()
+    for i, lang in enumerate(languages):
+        lang_name = translator.get(f"languages.{lang}")
+        print(f"{Fore.GREEN}{i}{Style.RESET_ALL}. {lang_name}")
     
     try:
-        choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices='0-' + str(len(languages)-1))}: {Style.RESET_ALL}")
+        choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{len(languages)-1}')}: {Style.RESET_ALL}")
         if choice.isdigit() and 0 <= int(choice) < len(languages):
-            lang_code = list(languages.keys())[int(choice)]
-            translator.set_language(lang_code)
+            translator.set_language(languages[int(choice)])
             return True
+        else:
+            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
+            return False
     except (ValueError, IndexError):
-        pass
-    
-    print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
-    return False
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
+        return False
 
 def main():
     print_logo()

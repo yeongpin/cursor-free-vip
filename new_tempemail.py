@@ -13,7 +13,13 @@ init()
 class NewTempEmail:
     def __init__(self, translator=None):
         self.translator = translator
-        self.api_url = "https://api.mail.tm"
+        # Randomly choose between mail.tm and mail.gw
+        self.services = [
+            {"name": "mail.tm", "api_url": "https://api.mail.tm"},
+            {"name": "mail.gw", "api_url": "https://api.mail.gw"}
+        ]
+        self.selected_service = random.choice(self.services)
+        self.api_url = self.selected_service["api_url"]
         self.token = None
         self.email = None
         self.password = None
@@ -28,9 +34,9 @@ class NewTempEmail:
         """创建临时邮箱"""
         try:
             if self.translator:
-                print(f"{Fore.CYAN}ℹ️ {self.translator.get('email.visiting_site')}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}ℹ️ {self.translator.get('email.visiting_site').replace('mail.tm', self.selected_service['name'])}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.CYAN}ℹ️ 正在访问 mail.tm...{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}ℹ️ 正在访问 {self.selected_service['name']}...{Style.RESET_ALL}")
             
             # 获取可用域名列表
             domains_response = requests.get(f"{self.api_url}/domains")

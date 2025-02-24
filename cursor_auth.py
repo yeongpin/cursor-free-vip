@@ -31,6 +31,23 @@ class CursorAuth:
                 "~/Library/Application Support/Cursor/User/globalStorage/state.vscdb"
             )
 
+        # 检查数据库文件是否存在
+        if not os.path.exists(self.db_path):
+            print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('auth.db_not_found', path=self.db_path)}{Style.RESET_ALL}")
+            return
+
+        # 检查文件权限
+        if not os.access(self.db_path, os.R_OK | os.W_OK):
+            print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('auth.db_permission_error')}{Style.RESET_ALL}")
+            return
+
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {self.translator.get('auth.connected_to_database')}{Style.RESET_ALL}")
+        except sqlite3.Error as e:
+            print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('auth.db_connection_error', error=str(e))}{Style.RESET_ALL}")
+            return
+
     def update_auth(self, email=None, access_token=None, refresh_token=None):
         conn = None
         try:

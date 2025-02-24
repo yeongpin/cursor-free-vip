@@ -1,5 +1,8 @@
 FORKED PROJECT , ALL CREDITS GO TO OWNER:
 
+- ADDED 2 API TEMP MAIL
+- UP SUPPORT TO LATEST VERSION
+
 # ➤ Cursor Free VIP
 <div align="center">
 <p align="center">
@@ -8,13 +11,13 @@ FORKED PROJECT , ALL CREDITS GO TO OWNER:
 
 <p align="center">
 
-[![Release](https://img.shields.io/github/v/release/yeongpin/cursor-free-vip?style=flat-square&logo=github&color=blue)](https://github.com/yeongpin/cursor-free-vip/releases/latest)
+[![Release](https://img.shields.io/github/v/release/UntaDotMy/cursor-free-vip?style=flat-square&logo=github&color=blue)](https://github.com/UntaDotMy/cursor-free-vip/releases/latest)
 [![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC_BY--NC--ND_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-nd/4.0/)
-[![Stars](https://img.shields.io/github/stars/yeongpin/cursor-free-vip?style=flat-square&logo=github)](https://github.com/yeongpin/cursor-free-vip/stargazers)
-[![Download](https://img.shields.io/github/downloads/yeongpin/cursor-free-vip/total?style=flat-square&logo=github&color=52c41a)](https://github.com/yeongpin/cursor-free-vip/releases/latest)
+[![Stars](https://img.shields.io/github/stars/UntaDotMy/cursor-free-vip?style=flat-square&logo=github)](https://github.com/UntaDotMy/cursor-free-vip/stargazers)
+[![Download](https://img.shields.io/github/downloads/UntaDotMy/cursor-free-vip/total?style=flat-square&logo=github&color=52c41a)](https://github.com/UntaDotMy/cursor-free-vip/releases/latest)
 
 </p>
-<h4>Support Latest 0.45.16 Version | 支持最新0.45.16版本</h4>
+<h4>Support Latest 0.46.2 Version | 支持最新0.46.2版本</h4>
 
 This is a tool to automatically register , support Windows and macOS systems, complete Auth verification, and reset Cursor's configuration.
 
