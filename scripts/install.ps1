@@ -43,7 +43,7 @@ function Write-Styled {
 # 獲取版本號函數
 function Get-LatestVersion {
     try {
-        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/UntaDotMy/cursor-free-vip/releases/latest"
+        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/yeongpin/cursor-free-vip/releases/latest"
         return @{
             Version = $latestRelease.tag_name.TrimStart('v')
             Assets = $latestRelease.assets

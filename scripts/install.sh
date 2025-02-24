@@ -40,7 +40,7 @@ get_downloads_dir() {
 get_latest_version() {
     echo -e "${CYAN}ℹ️ 正在檢查最新版本...${NC}"
     local latest_release
-    latest_release=$(curl -s https://api.github.com/repos/UntaDotMy/cursor-free-vip/releases/latest)
+    latest_release=$(curl -s https://api.github.com/repos/yeongpin/cursor-free-vip/releases/latest)
     if [ $? -ne 0 ]; then
         echo -e "${RED}❌ 無法獲取最新版本信息${NC}"
         exit 1
@@ -64,7 +64,7 @@ install_cursor_free_vip() {
     local downloads_dir=$(get_downloads_dir)
     local binary_name="CursorFreeVIP_${VERSION}_${OS}"
     local binary_path="${downloads_dir}/cursor-free-vip"
-    local download_url="https://github.com/UntaDotMy/cursor-free-vip/releases/download/v${VERSION}/${binary_name}"
+    local download_url="https://github.com/yeongpin/cursor-free-vip/releases/download/v${VERSION}/${binary_name}"
     
     echo -e "${CYAN}ℹ️ 正在下載到 ${downloads_dir}...${NC}"
     if ! curl -L -o "${binary_path}" "$download_url"; then

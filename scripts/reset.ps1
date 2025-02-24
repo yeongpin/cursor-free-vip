@@ -103,7 +103,7 @@ function Cleanup {
 
 try {
     # 下載地址
-    $url = "https://github.com/UntaDotMy/cursor-free-vip/releases/download/ManualReset/reset_machine_manual.exe"
+    $url = "https://github.com/yeongpin/cursor-free-vip/releases/download/ManualReset/reset_machine_manual.exe"
     $output = Join-Path $TmpDir "reset_machine_manual.exe"
 
     # 下載文件
