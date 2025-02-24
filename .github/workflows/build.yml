@@ -58,12 +58,14 @@ jobs:
     - name: Build EXE
       run: |
         pyinstaller build.spec
+        # Rename the file to CursorFreeVIP.exe
+        mv dist/CursorFreeVIP_${{ env.VERSION }}_windows.exe dist/CursorFreeVIP.exe
          
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorFreeVIP_${{ env.VERSION }}_windows.exe
-        path: dist/*
+        path: dist/CursorFreeVIP.exe
 
   build-macos-arm64:
     needs: create-tag
@@ -90,12 +92,14 @@ jobs:
     - name: Build MacOS ARM executable
       run: |
         pyinstaller build.spec
+        # Rename the file to CursorFreeVIP
+        mv dist/CursorFreeVIP_${{ env.VERSION }}_mac dist/CursorFreeVIP
 
     - name: Upload MacOS ARM artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorFreeVIP_${{ env.VERSION }}_mac_arm64
-        path: dist/*
+        path: dist/CursorFreeVIP
 
   build-linux:
     needs: create-tag
@@ -122,12 +126,14 @@ jobs:
     - name: Build Linux executable
       run: |
         pyinstaller build.spec
+        # Rename the file to CursorFreeVIP
+        mv dist/CursorFreeVIP_${{ env.VERSION }}_linux dist/CursorFreeVIP
         
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorFreeVIP_${{ env.VERSION }}_linux
-        path: dist/*
+        path: dist/CursorFreeVIP
 
 
   build-macos-intel:
@@ -157,12 +163,14 @@ jobs:
         TARGET_ARCH: 'x86_64'
       run: |
         arch -x86_64 python3 -m PyInstaller build.spec
+        # Rename the file to CursorFreeVIP
+        mv dist/CursorFreeVIP_${{ env.VERSION }}_mac dist/CursorFreeVIP
         
     - name: Upload MacOS Intel artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorFreeVIP_${{ env.VERSION }}_mac_intel
-        path: dist/*
+        path: dist/CursorFreeVIP
 
 
   create-release:
