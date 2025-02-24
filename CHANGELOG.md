@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.4.03
+
+1. Switch to API-based Registration System | 改用API註冊系統替代瀏覽器操作
+2. Add Support for Latest Cursor Version | 增加支持最新版本Cursor
+3. Enhance Translation System | 優化多語言翻譯系統
+4. Add Database Connection Status Messages | 增加數據庫連接狀態提示
+5. Improve Error Handling for Database Operations | 改進數據庫操作的錯誤處理
+6. Add New API Integration | 新增API集成
+7. Optimize Performance and Stability | 優化性能和穩定性
+
 ## v1.4.01
 
 1. Add Disable Cursor Auto Upgrade | 增加禁用Cursor自動升級
