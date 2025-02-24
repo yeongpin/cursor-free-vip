@@ -1,7 +1,0 @@
-
-==================================================
-Email: j2hcfxd6r9@oakon.com
-Password: w08on!I1L0kI
-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdXRoMHx1c2VyXzAxSk1XR0FSUEdWVFlYQ043OFFDME5XS1BXIiwidGltZSI6IjE3NDA0MTg0MzEiLCJyYW5kb21uZXNzIjoiNzlmNzM0MzItMzlkOC00YjIyIiwiZXhwIjo0MzMyNDE4NDMxLCJpc3MiOiJodHRwczovL2F1dGhlbnRpY2F0aW9uLmN1cnNvci5zaCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJhdWQiOiJodHRwczovL2N1cnNvci5jb20ifQ.QlkK7WzyxoGssQb-lUlQxfjZhbKjFonh1TS6XbmjfjM
-Usage Limit: 150
-==================================================
