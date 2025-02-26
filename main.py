@@ -7,10 +7,10 @@ from logo import print_logo
 from colorama import Fore, Style, init
 import locale
 import platform
+import ctypes
 
 # 只在 Windows 系统上导入 windll
 if platform.system() == 'Windows':
-    import ctypes
     # 只在 Windows 上导入 windll
     from ctypes import windll
 
@@ -203,6 +203,15 @@ def select_language():
         print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
         return False
 
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def is_running_as_exe():
+    return getattr(sys, 'frozen', False)
+
 def main():
     print_logo()
     print_menu()
@@ -255,4 +264,13 @@ def main():
     input(f"{EMOJI['INFO']} {translator.get('menu.press_enter')}...{Style.RESET_ALL}")
 
 if __name__ == "__main__":
-    main()
+    if is_running_as_exe() and not is_admin():
+        # Re-run the program with admin rights if running as exe
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+        sys.exit()
+    else:
+        # Run normally if it's either:
+        # 1. Already has admin rights
+        # 2. Running as Python script
+        # 3. Running as exe with admin rights
+        main()
