@@ -48,6 +48,9 @@ class CursorRegistration:
         self.password = self._generate_password()
         self.first_name = self._generate_name()
         self.last_name = self._generate_name()
+        print(f"Password: {self.password}\n")
+        print(f"First Name: {self.first_name}\n")
+        print(f"Last Name: {self.last_name}\n")
 
     def _generate_password(self, length=12):
         """Generate Random Password"""
@@ -70,6 +73,7 @@ class CursorRegistration:
                 print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.invalid_email') if self.translator else '无效的邮箱地址'}{Style.RESET_ALL}")
                 return False
                 
+            print(f"Email Address: {self.email_address}\n")
             return True
             
         except Exception as e:
@@ -155,6 +159,7 @@ class CursorRegistration:
             if usage_ele:
                 total_usage = usage_ele.text.split("/")[-1].strip()
 
+            print(f"Total Usage: {total_usage}\n")
             print(f"{Fore.CYAN}{EMOJI['WAIT']} {self.translator.get('register.get_token')}...{Style.RESET_ALL}")
             max_attempts = 30
             retry_interval = 2

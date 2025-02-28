@@ -49,6 +49,9 @@ class CursorRegistration:
         self.password = self._generate_password()
         self.first_name = self._generate_name()
         self.last_name = self._generate_name()
+        print(f"Password: {self.password}\n")
+        print(f"First Name: {self.first_name}\n")
+        print(f"Last Name: {self.last_name}\n")
 
     def _generate_password(self, length=12):
         """Generate Random Password"""
@@ -78,6 +81,7 @@ class CursorRegistration:
             
             # 保存邮箱地址
             self.email_address = email_address
+            print(f"Email Address: {self.email_address}\n")
             self.email_tab = self.temp_email  # 传递 NewTempEmail 实例
             
             return True
@@ -149,6 +153,7 @@ class CursorRegistration:
             if usage_ele:
                 total_usage = usage_ele.text.split("/")[-1].strip()
 
+            print(f"Total Usage: {total_usage}\n")
             print(f"{Fore.CYAN}{EMOJI['WAIT']} {self.translator.get('register.get_token')}...{Style.RESET_ALL}")
             max_attempts = 30
             retry_interval = 2
