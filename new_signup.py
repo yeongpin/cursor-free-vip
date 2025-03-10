@@ -7,6 +7,7 @@ from colorama import Fore, Style
 import configparser
 from pathlib import Path
 import sys
+import locale
 
 # 在文件开头添加全局变量
 _translator = None
@@ -121,7 +122,26 @@ def get_default_chrome_path():
 def get_user_documents_path():
     """Get user Documents folder path"""
     if sys.platform == "win32":
-        return os.path.join(os.path.expanduser("~"), "Documents")
+        try:
+            # 使用Windows API获取Documents文件夹路径
+            import ctypes
+            from ctypes import windll, wintypes
+            
+            CSIDL_PERSONAL = 5  # Documents文件夹
+            SHGFP_TYPE_CURRENT = 0  # 获取当前路径而非默认路径
+            
+            buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+            windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf)
+            
+            # 确保路径有效
+            if buf.value:
+                return buf.value
+            
+            # 如果API失败，回退到普通方法
+            return os.path.join(os.path.expanduser("~"), "Documents")
+        except Exception:
+            # 出错时回退到普通方法
+            return os.path.join(os.path.expanduser("~"), "Documents")
     elif sys.platform == "darwin":
         return os.path.join(os.path.expanduser("~"), "Documents")
     else:  # Linux
@@ -229,7 +249,29 @@ def setup_config(translator=None):
             }
 
         if os.path.exists(config_file):
-            config.read(config_file)
+            try:
+                # 明确指定使用UTF-8编码读取
+                config.read(config_file, encoding='utf-8')
+            except UnicodeDecodeError:
+                # 如果UTF-8解码失败，尝试使用系统默认编码或其他常见编码
+                try:
+                    # 尝试使用系统默认编码
+                    config.read(config_file, encoding=locale.getpreferredencoding())
+                except:
+                    # 如果仍然失败，尝试使用GBK编码（中文Windows系统常用）
+                    try:
+                        config.read(config_file, encoding='gbk')
+                    except:
+                        # 最后尝试以二进制方式读取，然后进行转换
+                        with open(config_file, 'rb') as f:
+                            content = f.read()
+                        # 清除可能包含的BOM标记并尝试以latin-1编码（能处理任何字节）
+                        content = content.replace(b'\xef\xbb\xbf', b'')
+                        with open(config_file + '.tmp', 'w', encoding='utf-8') as f:
+                            f.write(content.decode('latin-1'))
+                        config.read(config_file + '.tmp', encoding='utf-8')
+                        os.remove(config_file + '.tmp')  # 清理临时文件
+            
             config_modified = False
 
             # 检查并添加缺失的配置项
@@ -258,6 +300,7 @@ def setup_config(translator=None):
                 for option, value in options.items():
                     config.set(section, option, value)
             
+            # 确保使用UTF-8编码保存配置文件
             with open(config_file, 'w', encoding='utf-8') as f:
                 config.write(f)
             if translator:

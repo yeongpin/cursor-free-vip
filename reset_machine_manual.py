@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import locale
 import uuid
 import hashlib
 import shutil
@@ -39,7 +40,29 @@ def get_cursor_paths(translator=None) -> Tuple[str, str]:
     if not os.path.exists(config_file):
         raise OSError(translator.get('reset.config_not_found') if translator else "找不到配置文件")
         
-    config.read(config_file)
+    if os.path.exists(config_file):
+        try:
+            # 尝试用UTF-8编码读取
+            config.read(config_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            try:
+                # 尝试系统默认编码
+                import locale
+                config.read(config_file, encoding=locale.getpreferredencoding())
+            except:
+                try:
+                    # 尝试GBK编码（中文Windows常用）
+                    config.read(config_file, encoding='gbk')
+                except:
+                    # 二进制方式读取并转换
+                    with open(config_file, 'rb') as f:
+                        content = f.read()
+                    # 清除BOM标记
+                    content = content.replace(b'\xef\xbb\xbf', b'')
+                    with open(config_file + '.tmp', 'w', encoding='utf-8') as f:
+                        f.write(content.decode('latin-1'))
+                    config.read(config_file + '.tmp', encoding='utf-8')
+                    os.remove(config_file + '.tmp')  # 清理临时文件
     
     # 根據系統獲取路徑
     if system == "Darwin":
@@ -82,13 +105,55 @@ def get_cursor_machine_id_path(translator=None) -> str:
     config = configparser.ConfigParser()
     
     if os.path.exists(config_file):
-        config.read(config_file)
+        try:
+            # 尝试用UTF-8编码读取
+            config.read(config_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            try:
+                # 尝试系统默认编码
+                import locale
+                config.read(config_file, encoding=locale.getpreferredencoding())
+            except:
+                try:
+                    # 尝试GBK编码（中文Windows常用）
+                    config.read(config_file, encoding='gbk')
+                except:
+                    # 二进制方式读取并转换
+                    with open(config_file, 'rb') as f:
+                        content = f.read()
+                    # 清除BOM标记
+                    content = content.replace(b'\xef\xbb\xbf', b'')
+                    with open(config_file + '.tmp', 'w', encoding='utf-8') as f:
+                        f.write(content.decode('latin-1'))
+                    config.read(config_file + '.tmp', encoding='utf-8')
+                    os.remove(config_file + '.tmp')  # 清理临时文件
     
     if sys.platform == "win32":  # Windows
         if not config.has_section('WindowsPaths'):
             config.add_section('WindowsPaths')
+            # 使用更健壮的方式获取环境变量
+            appdata = os.environ.get("APPDATA")
+            if appdata is None:
+                # 尝试使用Windows API获取路径
+                try:
+                    import ctypes
+                    from ctypes import windll, wintypes
+                    
+                    CSIDL_APPDATA = 26  # AppData文件夹
+                    SHGFP_TYPE_CURRENT = 0  # 获取当前路径而非默认路径
+                    
+                    buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+                    windll.shell32.SHGetFolderPathW(None, CSIDL_APPDATA, None, SHGFP_TYPE_CURRENT, buf)
+                    
+                    if buf.value:
+                        appdata = buf.value
+                    else:
+                        appdata = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
+                except:
+                    appdata = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
+            
             config.set('WindowsPaths', 'machine_id_path', 
-                os.path.join(os.getenv("APPDATA"), "Cursor", "machineId"))
+                os.path.join(appdata, "Cursor", "machineId"))
         return config.get('WindowsPaths', 'machine_id_path')
         
     elif sys.platform == "linux":  # Linux
@@ -256,13 +321,13 @@ def modify_workbench_js(file_path: str, translator=None) -> bool:
             if sys.platform == "win32":
                 # Define replacement patterns
                 CButton_old_pattern = r'$(k,E(Ks,{title:"Upgrade to Pro",size:"small",get codicon(){return F.rocket},get onClick(){return t.pay}}),null)'
-                CButton_new_pattern = r'$(k,E(Ks,{title:"yeongpin GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)'
+                CButton_new_pattern = r'$(k,E(Ks,{title:"qing-turnaround GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/qing-turnaround/cursor-free-vip","_blank")}}}),null)'
             elif sys.platform == "linux":
                 CButton_old_pattern = r'$(k,E(Ks,{title:"Upgrade to Pro",size:"small",get codicon(){return F.rocket},get onClick(){return t.pay}}),null)'
-                CButton_new_pattern = r'$(k,E(Ks,{title:"yeongpin GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)'
+                CButton_new_pattern = r'$(k,E(Ks,{title:"qing-turnaround GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/qing-turnaround/cursor-free-vip","_blank")}}}),null)'
             elif sys.platform == "darwin":
                 CButton_old_pattern = r'M(x,I(as,{title:"Upgrade to Pro",size:"small",get codicon(){return $.rocket},get onClick(){return t.pay}}),null)'
-                CButton_new_pattern = r'M(x,I(as,{title:"yeongpin GitHub",size:"small",get codicon(){return $.rocket},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)'
+                CButton_new_pattern = r'M(x,I(as,{title:"qing-turnaround GitHub",size:"small",get codicon(){return $.rocket},get onClick(){return function(){window.open("https://github.com/qing-turnaround/cursor-free-vip","_blank")}}}),null)'
 
             CBadge_old_pattern = r'<div>Pro Trial'
             CBadge_new_pattern = r'<div>Pro'
@@ -408,13 +473,52 @@ class MachineIDResetter:
         if not os.path.exists(config_file):
             raise FileNotFoundError(f"Config file not found: {config_file}")
         
-        config.read(config_file)
+        if os.path.exists(config_file):
+            try:
+                # 尝试用UTF-8编码读取
+                config.read(config_file, encoding='utf-8')
+            except UnicodeDecodeError:
+                try:
+                    # 尝试系统默认编码
+                    import locale
+                    config.read(config_file, encoding=locale.getpreferredencoding())
+                except:
+                    try:
+                        # 尝试GBK编码（中文Windows常用）
+                        config.read(config_file, encoding='gbk')
+                    except:
+                        # 二进制方式读取并转换
+                        with open(config_file, 'rb') as f:
+                            content = f.read()
+                        # 清除BOM标记
+                        content = content.replace(b'\xef\xbb\xbf', b'')
+                        with open(config_file + '.tmp', 'w', encoding='utf-8') as f:
+                            f.write(content.decode('latin-1'))
+                        config.read(config_file + '.tmp', encoding='utf-8')
+                        os.remove(config_file + '.tmp')  # 清理临时文件
 
         # Check operating system
         if sys.platform == "win32":  # Windows
-            appdata = os.getenv("APPDATA")
+            # 使用更健壮的方式获取环境变量
+            appdata = os.environ.get("APPDATA")
             if appdata is None:
-                raise EnvironmentError("APPDATA Environment Variable Not Set")
+                # 尝试使用Windows API获取路径
+                try:
+                    import ctypes
+                    from ctypes import windll, wintypes
+                    
+                    CSIDL_APPDATA = 26  # AppData文件夹
+                    SHGFP_TYPE_CURRENT = 0  # 获取当前路径而非默认路径
+                    
+                    buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+                    windll.shell32.SHGetFolderPathW(None, CSIDL_APPDATA, None, SHGFP_TYPE_CURRENT, buf)
+                    
+                    if buf.value:
+                        appdata = buf.value
+                    else:
+                        appdata = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
+                except:
+                    appdata = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
             
             if not config.has_section('WindowsPaths'):
                 config.add_section('WindowsPaths')
