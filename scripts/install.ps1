@@ -43,7 +43,7 @@ function Write-Styled {
 # Get version number function
 function Get-LatestVersion {
     try {
-        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/yeongpin/cursor-free-vip/releases/latest"
+        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/qing-turnaround/cursor-free-vip/releases/latest"
         return @{
             Version = $latestRelease.tag_name.TrimStart('v')
             Assets = $latestRelease.assets
@@ -59,7 +59,7 @@ Write-Host $Logo -ForegroundColor $Theme.Primary
 $releaseInfo = Get-LatestVersion
 $version = $releaseInfo.Version
 Write-Host "Version $version" -ForegroundColor $Theme.Info
-Write-Host "Created by YeongPin`n" -ForegroundColor $Theme.Info
+Write-Host "Created by qing-turnaround`n" -ForegroundColor $Theme.Info
 
 # Set TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
