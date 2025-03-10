@@ -66,6 +66,10 @@ Write-Host "Created by qing-turnaround`n" -ForegroundColor $Theme.Info
 
 # Main installation function
 function Install-CursorFreeVIP {
+    param (
+        [switch]$SkipVersionCheck
+    )
+    
     Write-Styled "Start downloading Cursor Free VIP" -Color $Theme.Primary -Prefix "Download"
     
     try {
@@ -74,6 +78,24 @@ function Install-CursorFreeVIP {
         $releaseInfo = Get-LatestVersion
         $version = $releaseInfo.Version
         Write-Styled "Found latest version: $version" -Color $Theme.Success -Prefix "Version"
+        
+        # Check if current running script was called via update process
+        # This is an important check to prevent update loops
+        $scriptPath = $MyInvocation.MyCommand.Path
+        $isAutoUpdate = $scriptPath -eq $null -or $scriptPath -eq ""
+        
+        # If this is an auto-update, check if executable already exists to avoid multiple downloads
+        if ($isAutoUpdate -and -not $SkipVersionCheck) {
+            $DownloadsPath = [Environment]::GetFolderPath("UserProfile") + "\Downloads"
+            $downloadPath = Join-Path $DownloadsPath "CursorFreeVIP_${version}_windows.exe"
+            
+            if (Test-Path $downloadPath) {
+                Write-Styled "Executable already exists. Starting program directly..." -Color $Theme.Success -Prefix "Found"
+                # Start program directly without further checks
+                Start-Process $downloadPath
+                return
+            }
+        }
         
         # Find corresponding resources
         $asset = $releaseInfo.Assets | Where-Object { $_.name -eq "CursorFreeVIP_${version}_windows.exe" }
@@ -203,7 +225,15 @@ function Install-CursorFreeVIP {
 
 # Execute installation
 try {
-    Install-CursorFreeVIP
+    # 检查是否有-SkipVersionCheck参数
+    $skipCheck = $MyInvocation.BoundParameters.ContainsKey('SkipVersionCheck') -or $args -contains '-SkipVersionCheck'
+    
+    # 如果是通过IRM直接调用的脚本，添加-SkipVersionCheck参数防止循环
+    if (($MyInvocation.MyCommand.Path -eq $null -or $MyInvocation.MyCommand.Path -eq "") -and -not $skipCheck) {
+        $skipCheck = $true
+    }
+    
+    Install-CursorFreeVIP -SkipVersionCheck:$skipCheck
 }
 catch {
     Write-Styled "Download failed" -Color $Theme.Error -Prefix "Error"

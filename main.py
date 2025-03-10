@@ -205,7 +205,7 @@ def select_language():
         print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
         return False
 
-def check_latest_version():
+def check_latest_version(auto_update=True):
     """Check if current version matches the latest release version"""
     try:
         print(f"\n{Fore.CYAN}{EMOJI['UPDATE']} {translator.get('updater.checking')}{Style.RESET_ALL}")
@@ -235,44 +235,74 @@ def check_latest_version():
         if not latest_version:
             raise Exception("Invalid version format received")
         
-        if latest_version != version:
+        # 正确比较版本号
+        def parse_version(version_str):
+            return [int(x) for x in version_str.split('.')]
+            
+        current_parts = parse_version(version)
+        latest_parts = parse_version(latest_version)
+        
+        # 检查是否需要更新（只有当最新版本真的大于当前版本时）
+        needs_update = False
+        for i in range(max(len(current_parts), len(latest_parts))):
+            current_part = current_parts[i] if i < len(current_parts) else 0
+            latest_part = latest_parts[i] if i < len(latest_parts) else 0
+            
+            if latest_part > current_part:
+                needs_update = True
+                break
+            elif current_part > latest_part:
+                needs_update = False
+                break
+        
+        if needs_update:
             print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.new_version_available', current=version, latest=latest_version)}{Style.RESET_ALL}")
             
-            try:
-                # Execute update command based on platform
-                if platform.system() == 'Windows':
-                    update_command = 'irm https://raw.githubusercontent.com/qing-turnaround/cursor-free-vip/main/scripts/install.ps1 | iex'
-                    subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', update_command], check=True)
-                else:
-                    # For Linux/Mac, download and execute the install script
-                    install_script_url = 'https://raw.githubusercontent.com/qing-turnaround/cursor-free-vip/main/scripts/install.sh'
-                    
-                    # First verify the script exists
-                    script_response = requests.get(install_script_url, timeout=5)
-                    if script_response.status_code != 200:
-                        raise Exception("Installation script not found")
+            # 只有auto_update为True时才自动更新
+            if auto_update:
+                choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('updater.prompt_update')}: (Y/n): {Style.RESET_ALL}")
+                
+                if choice.lower() not in ["n", "no"]:
+                    try:
+                        # 获取有效下载路径并提示用户
+                        downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+                        download_file = f"CursorFreeVIP_{latest_version}_windows.exe"
+                        download_path = os.path.join(downloads_path, download_file)
                         
-                    # Save and execute the script
-                    with open('install.sh', 'wb') as f:
-                        f.write(script_response.content)
-                    
-                    os.chmod('install.sh', 0o755)  # Make executable
-                    subprocess.run(['./install.sh'], check=True)
-                    
-                    # Clean up
-                    if os.path.exists('install.sh'):
-                        os.remove('install.sh')
-                
-                print(f"\n{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('updater.updating')}{Style.RESET_ALL}")
-                sys.exit(0)
-                
-            except Exception as update_error:
-                print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('updater.update_failed', error=str(update_error))}{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.manual_update_required')}{Style.RESET_ALL}")
-                return
+                        print(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('updater.downloading_to', path=download_path)}{Style.RESET_ALL}")
+                        
+                        # Execute update command based on platform
+                        if platform.system() == 'Windows':
+                            update_command = 'irm https://raw.githubusercontent.com/qing-turnaround/cursor-free-vip/main/scripts/install.ps1 | iex -SkipVersionCheck'
+                            print(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('updater.running_command', command=update_command)}{Style.RESET_ALL}")
+                            subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', update_command], check=True)
+                        else:
+                            # For Linux/Mac, download and execute the install script
+                            install_script_url = 'https://raw.githubusercontent.com/qing-turnaround/cursor-free-vip/main/scripts/install.sh'
+                            
+                            # First verify the script exists
+                            script_response = requests.get(install_script_url, timeout=5)
+                            if script_response.status_code != 200:
+                                raise Exception("Installation script not found")
+                                
+                            # Save and execute the script
+                            with open('install.sh', 'wb') as f:
+                                f.write(script_response.content)
+                            
+                            os.chmod('install.sh', 0o755)  # Make executable
+                            subprocess.run(['./install.sh'], check=True)
+                        
+                        print(f"\n{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('updater.updating')}{Style.RESET_ALL}")
+                        return True
+                    except Exception as e:
+                        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('updater.update_failed', error=str(e))}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.update_skipped')}{Style.RESET_ALL}")
         else:
-            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('updater.up_to_date')}{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('updater.latest_version')}{Style.RESET_ALL}")
             
+        return True
+        
     except requests.exceptions.RequestException as e:
         print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('updater.network_error', error=str(e))}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.continue_anyway')}{Style.RESET_ALL}")

@@ -262,10 +262,16 @@
     },
     "updater": {
         "checking": "检查更新...",
-        "new_version_available": "有新版本可用! (当前版本: {current}, 最新版本: {latest})",
-        "updating": "正在更新到最新版本。程序将自动重启。",
         "up_to_date": "您使用的是最新版本。",
-        "check_failed": "检查更新失败: {error}",
-        "continue_anyway": "继续使用当前版本..."
+        "latest_version": "您使用的是最新版本。",
+        "new_version_available": "有新版本可用! (当前版本: {current}, 最新版本: {latest})",
+        "restart_required": "安装完成后，请重新启动应用程序。",
+        "update_failed": "更新失败: {error}",
+        "manual_update_required": "请手动下载最新版本",
+        "updating": "正在更新...",
+        "update_skipped": "更新已跳过",
+        "prompt_update": "是否要更新到最新版本？",
+        "downloading_to": "将下载到: {path}",
+        "running_command": "执行命令: {command}"
     }
 } 
