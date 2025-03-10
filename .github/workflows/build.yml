@@ -135,41 +135,6 @@ jobs:
         name: CursorFreeVIP_${{ env.VERSION }}_linux_x64
         path: dist/CursorFreeVIP_${{ env.VERSION }}_linux_x64
 
-  build-linux-arm64:
-    needs: create-tag
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
-      with:
-        platforms: arm64
-    
-    - name: Set version
-      shell: bash
-      run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-    
-    - name: Build in ARM64 Docker container
-      run: |
-        docker run --rm --platform linux/arm64 -v ${{ github.workspace }}:/app -w /app arm64v8/python:3.9-slim bash -c "
-          apt-get update && apt-get install -y build-essential
-          pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r requirements.txt
-          python -m PyInstaller build.spec
-          mv /app/dist/CursorFreeVIP_${{ env.VERSION }}_linux /app/dist/CursorFreeVIP_${{ env.VERSION }}_linux_arm64
-        "
-        echo "Contents of dist directory:"
-        ls -la dist/
-        
-    - name: Upload Linux ARM64 artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: CursorFreeVIP_${{ env.VERSION }}_linux_arm64
-        path: dist/CursorFreeVIP_${{ env.VERSION }}_linux_arm64
-
   build-macos-intel:
     needs: create-tag
     runs-on: macos-latest
@@ -207,7 +172,7 @@ jobs:
         path: dist/CursorFreeVIP_${{ env.VERSION }}_mac_intel
 
   create-release:
-    needs: [build-windows, build-macos-arm64, build-linux-x64, build-linux-arm64, build-macos-intel]
+    needs: [build-windows, build-macos-arm64, build-linux-x64, build-macos-intel]
     runs-on: ubuntu-22.04
     
     steps:
