@@ -1,0 +1,1 @@
+# Add GitHub-based Trial Reset Feature\n\n## Changes\n- Added new automated trial reset feature using GitHub authentication\n- Improved authentication data handling and persistence\n- Enhanced user experience with automatic re-login after reset\n- Added secure credential storage using keyring\n- Removed unnecessary popups that could interfere with the reset process

@@ -16,6 +16,10 @@ import time
 from cursor_auth import CursorAuth
 from oauth_auth import OAuthHandler
 import keyring
+from cursor_register_manual import CursorRegistration
+from cursor_register_github import main as register_github
+from cursor_register_google import main as register_google
+from github_trial_reset import reset_trial
 
 # Only import windll on Windows systems
 if platform.system() == 'Windows':
@@ -677,47 +681,38 @@ def open_chrome_with_userscript():
     return True
 
 def main():
-    # Check for admin privileges if running as executable on Windows only
-    if is_frozen() and platform.system() == 'Windows' and not is_admin():
-        if run_as_admin():
-            sys.exit()
-        else:
-            input(f"\n{Fore.RED}{EMOJI['ERROR']} {translator.get('error.admin_required')}{Style.RESET_ALL}")
-            sys.exit(1)
+    """Main function"""
+    try:
+        # Initialize translator
+        translator = load_translator()
+        
+        while True:
+            print_menu(translator)
+            choice = input(f"\n{Fore.CYAN}{translator.get('menu.enter_choice')}{Style.RESET_ALL}")
             
-    while True:
-        print_menu()
-        try:
-            choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices='0-9')}: {Style.RESET_ALL}")
-            
-            if choice == '0':
-                print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exiting')}{Style.RESET_ALL}")
-                sys.exit(0)
-            elif choice == '1':
-                subprocess.run([sys.executable, 'reset_machine_manual.py'])
-            elif choice == '2':
-                open_chrome_with_userscript()
-            elif choice == '3':
-                subprocess.run([sys.executable, 'cursor_register.py'])
-            elif choice == '4':
-                subprocess.run([sys.executable, 'cursor_register_google.py'])
-            elif choice == '5':
-                subprocess.run([sys.executable, 'cursor_register_github.py'])
-            elif choice == '6':
-                subprocess.run([sys.executable, 'cursor_register_manual.py'])
-            elif choice == '7':
-                subprocess.run([sys.executable, 'quit_cursor.py'])
-            elif choice == '8':
-                select_language()
-            elif choice == '9':
-                subprocess.run([sys.executable, 'disable_auto_update.py'])
+            if choice == "0":
+                print(f"\n{Fore.YELLOW}{EMOJI['EXIT']} {translator.get('menu.goodbye')}{Style.RESET_ALL}")
+                break
+            elif choice == "1":
+                reset_machine_id(translator)
+            elif choice == "2":
+                reset_trial(translator)
+            elif choice == "3":
+                register_cursor(translator)
+            elif choice == "4":
+                register_github(translator)
+            elif choice == "5":
+                register_google(translator)
             else:
-                print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
-        except KeyboardInterrupt:
-            print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exiting')}{Style.RESET_ALL}")
-            sys.exit(0)
-        except Exception as e:
-            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('error.unknown')}: {e}{Style.RESET_ALL}")
+                print(f"\n{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
+            
+            input(f"\n{Fore.CYAN}{translator.get('menu.press_enter')}{Style.RESET_ALL}")
+            
+    except KeyboardInterrupt:
+        print(f"\n\n{Fore.YELLOW}{EMOJI['EXIT']} {translator.get('menu.goodbye')}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"\n{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.error', error=str(e))}{Style.RESET_ALL}")
+        input(f"\n{Fore.CYAN}{translator.get('menu.press_enter')}{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
