@@ -10,6 +10,12 @@ import platform
 import requests
 import subprocess
 from config import get_config  
+import webbrowser
+import tempfile
+import time
+from cursor_auth import CursorAuth
+from oauth_auth import OAuthHandler
+import keyring
 
 # Only import windll on Windows systems
 if platform.system() == 'Windows':
@@ -341,77 +347,377 @@ def check_latest_version():
         print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.continue_anyway')}{Style.RESET_ALL}")
         return
 
+def get_chrome_path():
+    """Get the Chrome browser executable path based on the platform"""
+    try:
+        if platform.system() == 'Windows':
+            # Check common Windows Chrome installation paths
+            paths = [
+                os.path.expandvars(r'%ProgramFiles%\Google\Chrome\Application\chrome.exe'),
+                os.path.expandvars(r'%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe'),
+                os.path.expandvars(r'%LocalAppData%\Google\Chrome\Application\chrome.exe')
+            ]
+        elif platform.system() == 'Darwin':  # macOS
+            paths = [
+                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+                '~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+            ]
+        else:  # Linux
+            paths = [
+                '/usr/bin/google-chrome',
+                '/usr/bin/google-chrome-stable',
+                '/usr/bin/chromium',
+                '/usr/bin/chromium-browser'
+            ]
+
+        # Return the first path that exists
+        for path in paths:
+            expanded_path = os.path.expanduser(path)
+            if os.path.exists(expanded_path):
+                return expanded_path
+                
+        return None  # Return None if Chrome is not found
+        
+    except Exception as e:
+        print(f"Error finding Chrome path: {str(e)}")
+        return None
+
+def open_chrome_with_userscript():
+    """Open Chrome and navigate to cursor.sh/settings with the reset trial script"""
+    try:
+        from DrissionPage import ChromiumOptions, ChromiumPage
+        import time
+        import random
+        import getpass
+        import keyring
+
+        def get_random_wait_time(min_time=0.5, max_time=2.0):
+            return random.uniform(min_time, max_time)
+
+        def get_saved_credentials():
+            try:
+                email = keyring.get_password("cursor_reset", "github_email")
+                password = keyring.get_password("cursor_reset", "github_password")
+                return email, password
+            except:
+                return None, None
+
+        def save_credentials(email, password):
+            try:
+                keyring.set_password("cursor_reset", "github_email", email)
+                keyring.set_password("cursor_reset", "github_password", password)
+                return True
+            except:
+                return False
+
+        def clear_saved_credentials():
+            try:
+                keyring.delete_password("cursor_reset", "github_email")
+                keyring.delete_password("cursor_reset", "github_password")
+                return True
+            except:
+                return False
+
+        def extract_auth_data(page, github_email=None):
+            """Extract authentication data from page"""
+            auth_token = None
+            cursor_email = None
+            
+            print(f"{Fore.CYAN}{EMOJI['INFO']} Extracting authentication data...{Style.RESET_ALL}")
+            
+            # Get cookies
+            cookies = page.cookies()
+            for cookie in cookies:
+                name = cookie.get("name", "")
+                value = cookie.get("value", "")
+                if name == "WorkosCursorSessionToken":
+                    if "::" in value:
+                        auth_token = value.split("::")[-1]
+                    elif "%3A%3A" in value:
+                        auth_token = value.split("%3A%3A")[-1]
+                elif name == "cursor_email":
+                    cursor_email = value
+
+            # Try localStorage if token not found
+            if not auth_token:
+                try:
+                    local_storage_token = page.run_js('''
+                        return localStorage.getItem('WorkosCursorSessionToken') || 
+                               localStorage.getItem('cursor_token') || 
+                               localStorage.getItem('token');
+                    ''')
+                    if local_storage_token:
+                        auth_token = local_storage_token
+                except:
+                    pass
+
+            # Use GitHub email if cursor_email not found
+            if not cursor_email and github_email:
+                print(f"{Fore.YELLOW}Using GitHub email as fallback{Style.RESET_ALL}")
+                cursor_email = github_email
+
+            return auth_token, cursor_email
+
+        print(f"{Fore.CYAN}{EMOJI['INFO']} Setting up automated browser...{Style.RESET_ALL}")
+
+        # Get GitHub credentials
+        github_email, github_password = get_saved_credentials()
+        if not github_email or not github_password:
+            print(f"\n{Fore.CYAN}{EMOJI['INFO']} No saved GitHub credentials found. Please enter them now:{Style.RESET_ALL}")
+            github_email = input(f"{Fore.YELLOW}Enter GitHub email: {Style.RESET_ALL}")
+            github_password = getpass.getpass(f"{Fore.YELLOW}Enter GitHub password: {Style.RESET_ALL}")
+            
+            if save_credentials(github_email, github_password):
+                print(f"{Fore.GREEN}✅ Credentials saved securely{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.YELLOW}⚠️ Could not save credentials, but will continue with login{Style.RESET_ALL}")
+
+        # Set up ChromiumOptions
+        co = ChromiumOptions()
+        chrome_path = get_chrome_path()
+        if chrome_path:
+            co.set_browser_path(chrome_path)
+
+        # Other browser options
+        co.set_argument("--no-sandbox")
+        co.auto_port()
+        co.headless(False)
+
+        # Create browser instance
+        page = ChromiumPage(co)
+        
+        print(f"{Fore.YELLOW}Opening browser and navigating to settings...{Style.RESET_ALL}")
+
+        # Navigate to settings page
+        page.get("https://cursor.sh/settings")
+        time.sleep(get_random_wait_time())
+
+        # First check if we need to log in
+        max_attempts = 30
+        attempt = 0
+        logged_in = False
+
+        while attempt < max_attempts:
+            try:
+                # Check if already logged in
+                basic_info = page.ele("text=Basic Information", timeout=1)
+                if basic_info:
+                    print(f"{Fore.GREEN}✅ Already logged in{Style.RESET_ALL}")
+                    logged_in = True
+                    break
+
+                # If not logged in, look for and click GitHub button
+                github_button = page.ele("text=Continue with GitHub", timeout=1)
+                if github_button:
+                    print(f"{Fore.YELLOW}Clicking GitHub login button...{Style.RESET_ALL}")
+                    github_button.click()
+                    time.sleep(2)
+
+                    # Handle GitHub login form
+                    login_field = page.ele('@id=login_field', timeout=2) or page.ele('@name=login', timeout=2)
+                    if login_field:
+                        print(f"{Fore.YELLOW}Entering GitHub email...{Style.RESET_ALL}")
+                        login_field.input(github_email)
+                        time.sleep(1)
+
+                        password_field = page.ele('@id=password', timeout=2) or page.ele('@name=password', timeout=2)
+                        if password_field:
+                            print(f"{Fore.YELLOW}Entering GitHub password...{Style.RESET_ALL}")
+                            password_field.input(github_password)
+                            time.sleep(1)
+
+                            sign_in = page.ele('@name=commit', timeout=2) or page.ele("text=Sign in", timeout=2)
+                            if sign_in:
+                                print(f"{Fore.YELLOW}Clicking Sign in...{Style.RESET_ALL}")
+                                sign_in.click()
+                                time.sleep(3)
+
+                    # Handle GitHub OAuth page if it appears
+                    authorize = page.ele("text=Authorize", timeout=2) or page.ele("@id=js-oauth-authorize-btn", timeout=2)
+                    if authorize:
+                        print(f"{Fore.YELLOW}Authorizing Cursor access...{Style.RESET_ALL}")
+                        authorize.click()
+                        time.sleep(3)
+
+                attempt += 1
+                time.sleep(1)
+            except Exception as e:
+                print(f"{Fore.YELLOW}Waiting for page to load... ({attempt}/{max_attempts}){Style.RESET_ALL}")
+                attempt += 1
+                time.sleep(1)
+
+        if not logged_in:
+            print(f"{Fore.RED}{EMOJI['ERROR']} Failed to log in automatically{Style.RESET_ALL}")
+            return False
+
+        # Extract auth data before reset
+        auth_token, cursor_email = extract_auth_data(page, github_email)
+        if auth_token and cursor_email:
+            print(f"{Fore.GREEN}✅ Successfully extracted authentication data before reset{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}⚠️ Could not extract complete auth data before reset{Style.RESET_ALL}")
+
+        # Execute the reset
+        print(f"{Fore.YELLOW}Executing reset...{Style.RESET_ALL}")
+        page.run_js('''
+            fetch("https://www.cursor.com/api/dashboard/delete-account", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Origin": "https://cursor.sh",
+                    "Referer": "https://cursor.sh/settings"
+                },
+                credentials: "include"
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    console.error("Failed to reset trial");
+                }
+            })
+            .catch(error => {
+                console.error("Reset failed:", error);
+            });
+        ''')
+        
+        time.sleep(2)  # Wait for reload
+
+        # Log in again after reset
+        print(f"{Fore.YELLOW}Logging in again after reset...{Style.RESET_ALL}")
+        attempt = 0
+        logged_in = False
+
+        while attempt < max_attempts:
+            try:
+                # Check if already logged in
+                basic_info = page.ele("text=Basic Information", timeout=1)
+                if basic_info:
+                    print(f"{Fore.GREEN}✅ Successfully logged in after reset{Style.RESET_ALL}")
+                    logged_in = True
+                    break
+
+                # If not logged in, look for and click GitHub button
+                github_button = page.ele("text=Continue with GitHub", timeout=1)
+                if github_button:
+                    print(f"{Fore.YELLOW}Clicking GitHub login button...{Style.RESET_ALL}")
+                    github_button.click()
+                    time.sleep(2)
+
+                    # Handle GitHub OAuth page if it appears (should auto-authorize)
+                    authorize = page.ele("text=Authorize", timeout=2) or page.ele("@id=js-oauth-authorize-btn", timeout=2)
+                    if authorize:
+                        print(f"{Fore.YELLOW}Authorizing Cursor access...{Style.RESET_ALL}")
+                        authorize.click()
+                        time.sleep(3)
+
+                attempt += 1
+                time.sleep(1)
+            except Exception as e:
+                print(f"{Fore.YELLOW}Waiting for page to load... ({attempt}/{max_attempts}){Style.RESET_ALL}")
+                attempt += 1
+                time.sleep(1)
+
+        if not logged_in:
+            print(f"{Fore.RED}{EMOJI['ERROR']} Failed to log in after reset{Style.RESET_ALL}")
+            return False
+
+        # Extract auth data after reset and second login
+        print(f"{Fore.YELLOW}Extracting final authentication data...{Style.RESET_ALL}")
+        auth_token, cursor_email = extract_auth_data(page, github_email)
+        
+        if auth_token and cursor_email:
+            try:
+                print(f"{Fore.CYAN}{EMOJI['INFO']} Updating Cursor authentication data...{Style.RESET_ALL}")
+                cursor_auth = CursorAuth(translator=translator)
+                
+                # Update the auth info in Cursor's database
+                if cursor_auth.update_auth(
+                    email=cursor_email,
+                    access_token=auth_token,
+                    refresh_token=auth_token  # Use same token for both
+                ):
+                    print(f"{Fore.GREEN}✅ Authentication data saved - Cursor will auto-login next time{Style.RESET_ALL}")
+                    
+                    # Reset machine ID after updating auth
+                    from reset_machine_manual import MachineIDResetter
+                    print(f"{Fore.CYAN}{EMOJI['INFO']} Resetting machine ID...{Style.RESET_ALL}")
+                    resetter = MachineIDResetter(translator)
+                    if resetter.reset_machine_ids():
+                        print(f"{Fore.GREEN}✅ Machine ID reset successful{Style.RESET_ALL}")
+                    else:
+                        print(f"{Fore.RED}❌ Failed to reset machine ID{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.RED}❌ Failed to save authentication data{Style.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.RED}❌ Failed to save authentication data: {e}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}❌ Could not extract authentication data{Style.RESET_ALL}")
+            print(f"Missing data: {' auth_token' if not auth_token else ''}{' cursor_email' if not cursor_email else ''}")
+        
+        print(f"{Fore.CYAN}ℹ️ Closing Chrome...{Style.RESET_ALL}")
+        
+        # Close the browser
+        try:
+            page.quit()
+        except:
+            pass
+
+        return True
+
+    except Exception as e:
+        print(f"{Fore.RED}{EMOJI['ERROR']} Failed to automate the process: {e}{Style.RESET_ALL}")
+        return False
+    finally:
+        try:
+            page.quit()
+        except:
+            pass
+
+    return True
+
 def main():
     # Check for admin privileges if running as executable on Windows only
-    if platform.system() == 'Windows' and is_frozen() and not is_admin():
-        print(f"{Fore.YELLOW}{EMOJI['ADMIN']} Running as executable, administrator privileges required.{Style.RESET_ALL}")
+    if is_frozen() and platform.system() == 'Windows' and not is_admin():
         if run_as_admin():
-            sys.exit(0)  # Exit after requesting admin privileges
+            sys.exit()
         else:
-            print(f"{Fore.YELLOW}{EMOJI['INFO']} Continuing without administrator privileges.{Style.RESET_ALL}")
-    
-    print_logo()
-    
-    # Initialize configuration
-    config = get_config(translator)
-    if not config:
-        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.config_init_failed')}{Style.RESET_ALL}")
-        return
-        
-    check_latest_version()  # Add version check before showing menu
-    print_menu()
-    
+            input(f"\n{Fore.RED}{EMOJI['ERROR']} {translator.get('error.admin_required')}{Style.RESET_ALL}")
+            sys.exit(1)
+            
     while True:
+        print_menu()
         try:
             choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices='0-9')}: {Style.RESET_ALL}")
-
-            if choice == "0":
-                print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exit')}...{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
-                return
-            elif choice == "1":
-                import reset_machine_manual
-                reset_machine_manual.run(translator)
-                print_menu()
-            elif choice == "2":
-                import cursor_register
-                cursor_register.main(translator)
-                print_menu()
-            elif choice == "3":
-                import cursor_register_github
-                cursor_register_github.main(translator)
-                print_menu()
-            elif choice == "4":
-                import cursor_register_google
-                cursor_register_google.main(translator)
-                print_menu()
-            elif choice == "5":
-                import cursor_register_manual
-                cursor_register_manual.main(translator)
-                print_menu()
-            elif choice == "6":
-                import quit_cursor
-                quit_cursor.quit_cursor(translator)
-                print_menu()
-            elif choice == "7":
-                if select_language():
-                    print_menu()
-                continue
-            elif choice == "8":
-                import disable_auto_update
-                disable_auto_update.run(translator)
-                print_menu()
+            
+            if choice == '0':
+                print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exiting')}{Style.RESET_ALL}")
+                sys.exit(0)
+            elif choice == '1':
+                subprocess.run([sys.executable, 'reset_machine_manual.py'])
+            elif choice == '2':
+                open_chrome_with_userscript()
+            elif choice == '3':
+                subprocess.run([sys.executable, 'cursor_register.py'])
+            elif choice == '4':
+                subprocess.run([sys.executable, 'cursor_register_google.py'])
+            elif choice == '5':
+                subprocess.run([sys.executable, 'cursor_register_github.py'])
+            elif choice == '6':
+                subprocess.run([sys.executable, 'cursor_register_manual.py'])
+            elif choice == '7':
+                subprocess.run([sys.executable, 'quit_cursor.py'])
+            elif choice == '8':
+                select_language()
+            elif choice == '9':
+                subprocess.run([sys.executable, 'disable_auto_update.py'])
             else:
                 print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
-                print_menu()
-
         except KeyboardInterrupt:
-            print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.program_terminated')}{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
-            return
+            print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exiting')}{Style.RESET_ALL}")
+            sys.exit(0)
         except Exception as e:
-            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.error_occurred', error=str(e))}{Style.RESET_ALL}")
-            print_menu()
+            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('error.unknown')}: {e}{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
