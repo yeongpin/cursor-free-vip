@@ -129,7 +129,8 @@ class Translator:
         """Detect language on Unix-like systems (Linux, macOS)"""
         try:
             # Get the system locale
-            system_locale = locale.getdefaultlocale()[0]
+            locale.setlocale(locale.LC_ALL, '')
+            system_locale = locale.getlocale()[0]
             if not system_locale:
                 return 'en'
             
