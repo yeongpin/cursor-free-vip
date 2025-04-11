@@ -82,6 +82,15 @@ class Translator:
         self.current_language = self.detect_system_language()  # Use correct method name
         self.fallback_language = 'en'  # Fallback language if translation is missing
         self.load_translations()
+        self.default_layout_id_to_lang_code_mapping = {
+                0x0409: 'en',         # English
+                0x0404: 'zh_tw',      # Traditional Chinese
+                0x0804: 'zh_cn',      # Simplified Chinese
+                0x0422: 'vi',         # Vietnamese
+                0x0419: 'ru',         # Russian
+                0x0415: 'tr',         # Turkish
+                0x0402: 'bg'          # Bulgarian
+            } # Using in Windows
     
     def detect_system_language(self):
         """Detect system language and return corresponding language code"""
@@ -95,96 +104,59 @@ class Translator:
                 
         except Exception as e:
             print(f"{Fore.YELLOW}{EMOJI['INFO']} Failed to detect system language: {e}{Style.RESET_ALL}")
-            return 'en'
+            return self.fallback_language
     
     def _detect_windows_language(self):
         """Detect language on Windows systems"""
+        final_lang_code = self.fallback_language # Default to English if can not detect Windows system language
         try:
-            # Ensure we are on Windows
             if platform.system() != 'Windows':
-                return 'en'
+                return final_lang_code
                 
-            # Get keyboard layout
+            # Get current layout using Windows API
             user32 = ctypes.windll.user32
             hwnd = user32.GetForegroundWindow()
             threadid = user32.GetWindowThreadProcessId(hwnd, 0)
-            layout_id = user32.GetKeyboardLayout(threadid) & 0xFFFF
+            current_layout_id = user32.GetKeyboardLayout(threadid) & 0xFFFF
             
-            # Map language ID to our language codes
-            language_map = {
-                0x0409: 'en',      # English
-                0x0404: 'zh_tw',   # Traditional Chinese
-                0x0804: 'zh_cn',   # Simplified Chinese
-                0x0422: 'vi',      # Vietnamese
-                0x0419: 'ru',      # Russian
-                0x0415: 'tr',      # Turkish
-                0x0402: 'bg',      # Bulgarian
-            }
-            
-            return language_map.get(layout_id, 'en')
+            # Convert layout ID to language code using Windows LOCALE_SISO639LANGNAME
+            buf_size = 9  # Max size for ISO language code
+            lang_code = ctypes.create_unicode_buffer(buf_size)
+            if ctypes.windll.kernel32.LCIDToLocaleName(current_layout_id, lang_code, buf_size, 0) > 0:
+                final_lang_code = lang_code.value.lower()
+            else:
+                # Using default layout mapping if can not get form Windows API
+                final_lang_code = self.default_layout_id_to_lang_code_mapping.get(current_layout_id, 'en')
+
+            if final_lang_code == 'zh':
+                final_lang_code = 'zh_cn' # Default to Simplified Chinese
+            if final_lang_code == 'zh_hk':
+                final_lang_code = 'zh_tw' # Hongkong
+            return final_lang_code # Fallback
         except:
             return self._detect_unix_language()
-    
+
     def _detect_unix_language(self):
         """Detect language on Unix-like systems (Linux, macOS)"""
+        final_lang_code = self.fallback_language # Default to English if can not detect Windows system language
         try:
-            # Get the system locale
+            # Get the system locale, it is lang_code.charset_encoding such as: en_US.UTF-8
             locale.setlocale(locale.LC_ALL, '')
-            system_locale = locale.getlocale()[0]
-            if not system_locale:
-                return 'en'
-            
-            system_locale = system_locale.lower()
-            
-            # Map locale to our language codes
-            if system_locale.startswith('zh_tw') or system_locale.startswith('zh_hk'):
-                return 'zh_tw'
-            elif system_locale.startswith('zh_cn'):
-                return 'zh_cn'
-            elif system_locale.startswith('en'):
-                return 'en'
-            elif system_locale.startswith('vi'):
-                return 'vi'
-            elif system_locale.startswith('nl'):
-                return 'nl'
-            elif system_locale.startswith('de'):
-                return 'de'
-            elif system_locale.startswith('fr'):
-                return 'fr'
-            elif system_locale.startswith('pt'):
-                return 'pt'
-            elif system_locale.startswith('ru'):
-                return 'ru'
-            elif system_locale.startswith('tr'):
-                return 'tr'
-            elif system_locale.startswith('bg'):
-                return 'bg'
-            # Try to get language from LANG environment variable as fallback
-            env_lang = os.getenv('LANG', '').lower()
-            if 'tw' in env_lang or 'hk' in env_lang:
-                return 'zh_tw'
-            elif 'cn' in env_lang:
-                return 'zh_cn'
-            elif 'vi' in env_lang:
-                return 'vi'
-            elif 'nl' in env_lang:
-                return 'nl'
-            elif 'de' in env_lang:
-                return 'de'
-            elif 'fr' in env_lang:
-                return 'fr'
-            elif 'pt' in env_lang:
-                return 'pt'
-            elif 'ru' in env_lang:
-                return 'ru'
-            elif 'tr' in env_lang:
-                return 'tr'
-            elif 'bg' in env_lang:
-                return 'bg'
+            system_locale = locale.getlocale()[0].lower() or os.getenv('LANG').lower() # Use $LANG variable as a fall back
 
-            return 'en'
+            if not system_locale:
+                return final_lang_code # Fallback to English if can not detect Unix system language
+                
+            # We do not need the charset encoding, so:
+            final_lang_code = system_locale.split('.')[0] # Extract lang_code from locale if can detect Unix system language
+
+            if final_lang_code == 'zh':
+                final_lang_code = 'zh_cn' # Default to Simplified Chinese
+            if final_lang_code == 'zh_hk':
+                final_lang_code = 'zh_tw' # Hongkong
+            return final_lang_code # Fallback
         except:
-            return 'en'
+            return final_lang_code # Fallback
     
     def load_translations(self):
         """Load all available translations"""
