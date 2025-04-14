@@ -75,7 +75,7 @@ Always clean your browser's cache and cookies. If possible, use a VPN to create 
 |:-------:|:-----:|:-:|:-----:|:-------------:|:-:|
 | Windows |  x86  | ✅ | macOS | Apple Silicon | ✅ |
 |  Linux  |  x64  | ✅ | Linux |      x86      | ✅ |
-|  Linux  | ARM64 | ✅ | Linux |     ARM64     | ✅ |
+|  Linux  | ARM64 | ✅ | Linux |     AMD64     | ✅ |
 
 ## 👀 How to use | 如何使用
 
