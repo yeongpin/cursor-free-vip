@@ -156,7 +156,7 @@ def run(translator=None):
     """Run function to be called from main.py"""
     try:
         # Ask user if they want to get token from database or input manually
-        choice = input(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('auth_check.token_source') if translator else 'Get token from database or input manually? (d/m, default: d): '}{Style.RESET_ALL}").strip().lower()
+        choice = input(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('auth_check.token_source') if translator else 'Get token from database or input manually? (D/m): '}{Style.RESET_ALL}").strip().lower()
         
         token = None
         
