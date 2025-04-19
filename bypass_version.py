@@ -50,6 +50,8 @@ def get_product_json_path(translator=None):
     
     elif system == "Darwin":  # macOS
         product_json_path = "/Applications/Cursor.app/Contents/Resources/app/product.json"
+        if config.has_section('MacPaths') and config.has_option('MacPaths', 'product_json_path'):
+            product_json_path = config.get('MacPaths', 'product_json_path')
     
     elif system == "Linux":
         # Try multiple common paths
