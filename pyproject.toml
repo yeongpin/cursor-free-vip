@@ -23,9 +23,9 @@ dependencies = [
     "DrissionPage>=4.0.0",
     "selenium",
     "webdriver_manager",
-    "arabic-reshaper",
-    "python-bidi",
-    "faker"
+    "arabic-reshaper==3.0.0",
+    "python-bidi==0.6.6",
+    "faker>=37.1.0"
 ]
 
 [project.optional-dependencies]
