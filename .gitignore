@@ -51,3 +51,15 @@ Thumbs.db
 
 # Mac
 run_venv.mac.command
+
+# Ignore setuptools build metadata (egg-info) directories
+*.egg-info/
+
+# Ignore pyinstaller build metadata (build) directories
+build/
+
+# Ignore pyinstaller dist metadata (dist) directories
+dist/
+
+# Ignore virtual environment
+.venv/

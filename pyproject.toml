@@ -1,0 +1,46 @@
+[project]
+name = "cursor-free-vip"
+version = "1.11.02"
+description = "A cross-platform tool for educational and research purposes, supporting Windows, macOS, and Linux. Features include configuration reset, multi-language support (English, 简体中文, 繁體中文, Vietnamese), and automation for Cursor app workflows. This tool does not generate fake email accounts or OAuth access. For optimal performance, run with privileges and always stay up to date."
+authors = [
+    { name = "yeongpin" }
+]
+license = "CC-BY-NC-ND-4.0"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = [
+    "automation", "free", "cursor", "cursors", "pro",
+    "cursor-ide", "freetrial", "cursorai", "cursor-ai"
+]
+dependencies = [
+    "watchdog",
+    "python-dotenv>=1.0.0",
+    "colorama>=0.4.6",
+    "requests",
+    "psutil>=5.8.0",
+    "pywin32; platform_system == 'Windows'",
+    "pyinstaller",
+    "DrissionPage>=4.0.0",
+    "selenium",
+    "webdriver_manager",
+    "arabic-reshaper",
+    "python-bidi",
+    "faker"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "flake8",
+    "isort",
+    "pre-commit"
+]
+
+[tool.setuptools.packages.find]
+include = ["*.py"]
+exclude = ["images*", "locales*", "email_tabs*"]
+
+[project.urls]
+Homepage = "https://github.com/yeongpin/cursor-free-vip"
+
