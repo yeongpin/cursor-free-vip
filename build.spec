@@ -1,13 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import platform
-from dotenv import load_dotenv
+from project_info import VERSION as version
 
-# 加載環境變量獲取版本號
-load_dotenv()
-version = os.getenv('VERSION', '1.0.0')
-
-# 根据系统类型设置输出名称
+# Set output name based on system type
 system = platform.system().lower()
 if system == "windows":
     os_type = "windows"
@@ -26,11 +22,12 @@ a = Analysis(
         ('locales', 'locales'),
         ('quit_cursor.py', '.'),
         ('utils.py', '.'),
-        ('.env', '.')
+        ('pyproject.toml', '.')  # Include pyproject.toml instead of .env
     ],
     hiddenimports=[
         'quit_cursor',
-        'utils'
+        'utils',
+        'project_info'  # Add project_info to hiddenimports
     ],
     hookspath=[],
     hooksconfig={},
