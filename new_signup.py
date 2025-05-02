@@ -116,7 +116,14 @@ def fill_signup_form(page, first_name, last_name, email, config, translator=None
 def get_user_documents_path():
     """Get user Documents folder path"""
     if sys.platform == "win32":
-        return os.path.join(os.path.expanduser("~"), "Documents")
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders") as key:
+                documents_path, _ = winreg.QueryValueEx(key, "Personal")
+                return documents_path
+        except Exception as e:
+            # fallback
+            return os.path.join(os.path.expanduser("~"), "Documents")
     elif sys.platform == "darwin":
         return os.path.join(os.path.expanduser("~"), "Documents")
     else:  # Linux

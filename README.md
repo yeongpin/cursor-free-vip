@@ -178,6 +178,14 @@ check_update = True
 # Show Account Info | 顯示賬號信息
 show_account_info = True
 
+[TempMailPlus]
+# Enable TempMailPlus | 啓用 TempMailPlus（任何轉發到TempMailPlus的郵件都支持獲取驗證碼，例如cloudflare郵件Catch-all）
+enabled = false
+# TempMailPlus Email | TempMailPlus 電子郵件
+email = xxxxx@mailto.plus
+# TempMailPlus pin | TempMailPlus pin碼
+epin = 
+
 [WindowsPaths]
 storage_path = C:\Users\yeongpin\AppData\Roaming\Cursor\User\globalStorage\storage.json
 sqlite_path = C:\Users\yeongpin\AppData\Roaming\Cursor\User\globalStorage\state.vscdb

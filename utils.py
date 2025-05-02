@@ -6,7 +6,16 @@ import random
 def get_user_documents_path():
     """Get user documents path"""
     if platform.system() == "Windows":
-        return os.path.expanduser("~\\Documents")
+        try:
+            import winreg
+            # 打开注册表
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders") as key:
+                # 获取 "Personal" 键的值，这指向用户的文档目录
+                documents_path, _ = winreg.QueryValueEx(key, "Personal")
+                return documents_path
+        except Exception as e:
+            # fallback
+            return os.path.expanduser("~\\Documents")
     else:
         return os.path.expanduser("~/Documents")
     
