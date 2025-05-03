@@ -1,0 +1,13 @@
+watchdog
+python-dotenv>=1.0.0
+colorama>=0.4.6
+requests
+psutil>=5.8.0
+pywin32; platform_system == 'Windows'
+pyinstaller
+DrissionPage>=4.0.0
+selenium
+webdriver_manager
+arabic-reshaper==3.0.0
+python-bidi==0.6.6
+faker>=37.1.0
