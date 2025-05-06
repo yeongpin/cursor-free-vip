@@ -96,6 +96,25 @@ irm https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/inst
 
 If you want to stop the script, please press Ctrl+C<br>要停止腳本，請按 Ctrl+C
 
+## 📦 Install with pip
+
+You can install the project and its dependencies using pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+For development (with linting, testing, formatting tools):
+
+```bash
+pip install .[dev]
+```
+
+- For global install, use `pip install -r requirements.txt` in the project root directory.
+- For development, use `pip install .[dev]` to get all dev tools (pytest, black, flake8, isort, pre-commit, ...).
+
+---
+
 ## ❗ Note | 注意事項
 
 📝 Config | 文件配置
