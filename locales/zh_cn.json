@@ -191,6 +191,8 @@
         "setting_password": "设置密码",
         "manual_code_input": "手动输入验证码",
         "manual_email_input": "手动输入邮箱",
+        "suggest_email": "推荐邮箱地址: {suggested_email}",
+        "use_suggested_email_or_enter": "输入\"yes\"使用此邮箱或直接输入您想使用的邮箱地址:",
         "password": "密码",
         "first_name": "名字",
         "last_name": "姓氏",

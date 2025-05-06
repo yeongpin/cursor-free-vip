@@ -188,6 +188,8 @@
         "setting_password": "設置密碼",
         "manual_code_input": "手動輸入驗證碼",
         "manual_email_input": "手動輸入郵箱地址",
+        "suggest_email": "推薦郵箱地址: {suggested_email}",
+        "use_suggested_email_or_enter": "輸入\"yes\"使用此郵箱或直接輸入您想使用的郵箱地址:",
         "password": "密碼",
         "first_name": "名字",
         "last_name": "姓氏",

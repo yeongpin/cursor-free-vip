@@ -191,6 +191,8 @@
         "setting_password": "Setting Password",
         "manual_code_input": "Manual Code Input",
         "manual_email_input": "Manual Email Input",
+        "suggest_email": "Suggested email: {suggested_email}",
+        "use_suggested_email_or_enter": "Type \"yes\" to use this email or enter your own email:",
         "password": "Password",
         "first_name": "First Name",
         "last_name": "Last Name",

@@ -7,6 +7,7 @@ from cursor_auth import CursorAuth
 from reset_machine_manual import MachineIDResetter
 from get_user_token import get_token_from_cookie
 from config import get_config
+from account_manager import AccountManager
 
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
@@ -67,11 +68,28 @@ class CursorRegistration:
     def setup_email(self):
         """Setup Email"""
         try:
-            print(f"{Fore.CYAN}{EMOJI['START']} {self.translator.get('register.manual_email_input') if self.translator else 'Please enter your email address:'}")
-            self.email_address = input().strip()
+            # Try to get a suggested email
+            account_manager = AccountManager(self.translator)
+            suggested_email = account_manager.suggest_email(self.first_name, self.last_name)
             
+            if suggested_email:
+                print(f"{Fore.CYAN}{EMOJI['START']} {self.translator.get('register.suggest_email', suggested_email=suggested_email) if self.translator else f'Suggested email: {suggested_email}'}")
+                print(f"{Fore.CYAN}{EMOJI['START']} {self.translator.get('register.use_suggested_email_or_enter') if self.translator else 'Type "yes" to use this email or enter your own email:'}")
+                user_input = input().strip()
+                
+                if user_input.lower() == 'yes' or user_input.lower() == 'y':
+                    self.email_address = suggested_email
+                else:
+                    # User input is their own email address
+                    self.email_address = user_input
+            else:
+                # If there's no suggested email
+                print(f"{Fore.CYAN}{EMOJI['START']} {self.translator.get('register.manual_email_input') if self.translator else 'Please enter your email address:'}")
+                self.email_address = input().strip()
+            
+            # Validate if the email is valid
             if '@' not in self.email_address:
-                print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.invalid_email') if self.translator else '无效的邮箱地址'}{Style.RESET_ALL}")
+                print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.invalid_email') if self.translator else 'Invalid email address'}{Style.RESET_ALL}")
                 return False
                 
             print(f"{Fore.CYAN}{EMOJI['MAIL']} {self.translator.get('register.email_address')}: {self.email_address}" + "\n" + f"{Style.RESET_ALL}")
@@ -88,7 +106,7 @@ class CursorRegistration:
             code = input().strip()
             
             if not code.isdigit() or len(code) != 6:
-                print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.invalid_code') if self.translator else '无效的验证码'}{Style.RESET_ALL}")
+                print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.invalid_code') if self.translator else 'Invalid verification code'}{Style.RESET_ALL}")
                 return None
                 
             return code
@@ -224,17 +242,12 @@ class CursorRegistration:
             if not resetter.reset_machine_ids():  # Call reset_machine_ids method directly
                 raise Exception("Failed to reset machine ID")
             
-            # Save account information to file
-            with open('cursor_accounts.txt', 'a', encoding='utf-8') as f:
-                f.write(f"\n{'='*50}\n")
-                f.write(f"Email: {self.email_address}\n")
-                f.write(f"Password: {self.password}\n")
-                f.write(f"Token: {token}\n")
-                f.write(f"Usage Limit: {total_usage}\n")
-                f.write(f"{'='*50}\n")
-                
-            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {self.translator.get('register.account_info_saved')}...{Style.RESET_ALL}")
-            return True
+            # Save account information to file using AccountManager
+            account_manager = AccountManager(self.translator)
+            if account_manager.save_account_info(self.email_address, self.password, token, total_usage):
+                return True
+            else:
+                return False
             
         except Exception as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('register.save_account_info_failed', error=str(e))}{Style.RESET_ALL}")
