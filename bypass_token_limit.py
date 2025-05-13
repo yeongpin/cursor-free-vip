@@ -24,32 +24,31 @@ EMOJI = {
 }
 
 def get_user_documents_path():
-     """Get user Documents folder path"""
-     if sys.platform == "win32":
-         try:
-             import winreg
-             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders") as key:
-                 documents_path, _ = winreg.QueryValueEx(key, "Personal")
-                 return documents_path
-         except Exception as e:
-             # fallback
-             return os.path.join(os.path.expanduser("~"), "Documents")
-     elif sys.platform == "darwin":
-         return os.path.join(os.path.expanduser("~"), "Documents")
-     else:  # Linux
-         # Get actual user's home directory
-         sudo_user = os.environ.get('SUDO_USER')
-         if sudo_user:
-             return os.path.join("/home", sudo_user, "Documents")
-         return os.path.join(os.path.expanduser("~"), "Documents")
-     
+    """Get user Documents folder path"""
+    if sys.platform == "win32":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, 
+                                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders") as key:
+                documents_path, _ = winreg.QueryValueEx(key, "Personal")
+                return documents_path
+        except Exception:
+            return os.path.join(os.path.expanduser("~"), "Documents")
+    elif sys.platform == "darwin":
+        return os.path.join(os.path.expanduser("~"), "Documents")
+    else:  # Linux
+        sudo_user = os.environ.get('SUDO_USER')
+        if sudo_user:
+            return os.path.join("/home", sudo_user, "Documents")
+        return os.path.join(os.path.expanduser("~"), "Documents")
 
-def get_workbench_cursor_path(translator=None) -> str:
-    """Get Cursor workbench.desktop.main.js path"""
+
+def get_workbench_windsurf_path(translator=None) -> str:
+    """Get Windsurf workbench.desktop.main.js path"""
     system = platform.system()
 
     # Read configuration
-    config_dir = os.path.join(get_user_documents_path(), ".cursor-free-vip")
+    config_dir = os.path.join(get_user_documents_path(), ".windsurf-free-vip")
     config_file = os.path.join(config_dir, "config.ini")
     config = configparser.ConfigParser()
 
@@ -58,53 +57,54 @@ def get_workbench_cursor_path(translator=None) -> str:
     
     paths_map = {
         "Darwin": {  # macOS
-            "base": "/Applications/Cursor.app/Contents/Resources/app",
+            "base": "/Applications/Windsurf.app/Contents/Resources/app",
             "main": "out/vs/workbench/workbench.desktop.main.js"
         },
         "Windows": {
-            "main": "out\\vs\\workbench\\workbench.desktop.main.js"
+            "bases": [
+                os.path.expandvars(r"%LOCALAPPDATA%\\Programs\\Windsurf\\resources\\app"),
+                os.path.expandvars(r"%USERPROFILE%\\AppData\\Local\\Programs\\Windsurf\\resources\\app")
+            ],
+            "main": os.path.join("out", "vs", "workbench", "workbench.desktop.main.js")
         },
         "Linux": {
-            "bases": ["/opt/Cursor/resources/app", "/usr/share/cursor/resources/app", "/usr/lib/cursor/app/"],
+            "bases": [
+                "/usr/share/windsurf/resources/app",
+                "/opt/windsurf/resources/app",
+                "/usr/lib/windsurf/resources/app"
+            ],
             "main": "out/vs/workbench/workbench.desktop.main.js"
         }
     }
     
     if system == "Linux":
-        # Add extracted AppImage with correct usr structure
-        extracted_usr_paths = glob.glob(os.path.expanduser("~/squashfs-root/usr/share/cursor/resources/app"))
-            
-        paths_map["Linux"]["bases"].extend(extracted_usr_paths)
+        extracted_paths = glob.glob(os.path.expanduser("~/squashfs-root/usr/share/windsurf/resources/app"))
+        paths_map["Linux"]["bases"].extend(extracted_paths)
 
     if system not in paths_map:
-        raise OSError(translator.get('reset.unsupported_os', system=system) if translator else f"不支持的操作系统: {system}")
+        raise OSError(translator.get('reset.unsupported_os', system=system)
+                      if translator else f"Unsupported OS: {system}")
 
-    if system == "Linux":
-        for base in paths_map["Linux"]["bases"]:
-            main_path = os.path.join(base, paths_map["Linux"]["main"])
+    # Search for Linux and Windows bases
+    if system in ("Linux", "Windows"):
+        for base in paths_map[system]["bases"]:
+            main_path = os.path.join(base, paths_map[system]["main"])
             print(f"{Fore.CYAN}{EMOJI['INFO']} Checking path: {main_path}{Style.RESET_ALL}")
             if os.path.exists(main_path):
                 return main_path
 
-    if system == "Windows":
-        base_path = config.get('WindowsPaths', 'cursor_path')
-    elif system == "Darwin":
-        base_path = paths_map[system]["base"]
-        if config.has_section('MacPaths') and config.has_option('MacPaths', 'cursor_path'):
-            base_path = config.get('MacPaths', 'cursor_path')
-    else:  # Linux
-        # For Linux, we've already checked all bases in the loop above
-        # If we're here, it means none of the bases worked, so we'll use the first one
-        base_path = paths_map[system]["bases"][0]
-        if config.has_section('LinuxPaths') and config.has_option('LinuxPaths', 'cursor_path'):
-            base_path = config.get('LinuxPaths', 'cursor_path')
+    # macOS has a single base
+    if system == "Darwin":
+        base = paths_map[system]["base"]
+        if config.has_section('MacPaths') and config.has_option('MacPaths', 'windsurf_path'):
+            base = config.get('MacPaths', 'windsurf_path')
+        main_path = os.path.join(base, paths_map[system]["main"])
+        if os.path.exists(main_path):
+            return main_path
 
-    main_path = os.path.join(base_path, paths_map[system]["main"])
-    
-    if not os.path.exists(main_path):
-        raise OSError(translator.get('reset.file_not_found', path=main_path) if translator else f"未找到 Cursor main.js 文件: {main_path}")
-        
-    return main_path
+    # Fallback: error
+    raise OSError(translator.get('reset.file_not_found', path=main_path)
+                  if translator else f"File not found: {main_path}")
 
 
 def modify_workbench_js(file_path: str, translator=None) -> bool:
@@ -112,89 +112,66 @@ def modify_workbench_js(file_path: str, translator=None) -> bool:
     Modify file content
     """
     try:
-        # Save original file permissions
         original_stat = os.stat(file_path)
         original_mode = original_stat.st_mode
         original_uid = original_stat.st_uid
         original_gid = original_stat.st_gid
 
-        # Create temporary file
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", errors="ignore", delete=False) as tmp_file:
-            # Read original content
             with open(file_path, "r", encoding="utf-8", errors="ignore") as main_file:
                 content = main_file.read()
 
             patterns = {
-                # 通用按钮替换模式
-                r'B(k,D(Ln,{title:"Upgrade to Pro",size:"small",get codicon(){return A.rocket},get onClick(){return t.pay}}),null)': r'B(k,D(Ln,{title:"yeongpin GitHub",size:"small",get codicon(){return A.github},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)',
-                
-                # Windows/Linux
-                r'M(x,I(as,{title:"Upgrade to Pro",size:"small",get codicon(){return $.rocket},get onClick(){return t.pay}}),null)': r'M(x,I(as,{title:"yeongpin GitHub",size:"small",get codicon(){return $.github},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)',
-                
-                # Mac 通用按钮替换模式
-                r'$(k,E(Ks,{title:"Upgrade to Pro",size:"small",get codicon(){return F.rocket},get onClick(){return t.pay}}),null)': r'$(k,E(Ks,{title:"yeongpin GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/yeongpin/cursor-free-vip","_blank")}}}),null)',
-                # Badge 替换
-                r'<div>Pro Trial': r'<div>Pro',
-
-                r'py-1">Auto-select': r'py-1">Bypass-Version-Pin',
-                
-                #
-                r'async getEffectiveTokenLimit(e){const n=e.modelName;if(!n)return 2e5;':r'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 9e5;',
-                # Pro
-                r'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>.");': r'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>. <h1>Pro</h1>");',
-                
-                # Toast 替换
-                r'notifications-toasts': r'notifications-toasts hidden'
+                # Bypass Upgrade prompt patterns
+                r'async getEffectiveTokenLimit\(e\)\{const n=e.modelName;if\(!n\)return 2e5;':
+                  r'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 9e5;',
+                r'notifications-toasts': r'notifications-toasts hidden',
             }
 
-            # 使用patterns进行替换
-            for old_pattern, new_pattern in patterns.items():
-                content = content.replace(old_pattern, new_pattern)
+            for old, new in patterns.items():
+                content = content.replace(old, new)
 
-            # Write to temporary file
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
-        # Backup original file with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = f"{file_path}.backup.{timestamp}"
         shutil.copy2(file_path, backup_path)
-        print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('reset.backup_created', path=backup_path)}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}{EMOJI['SUCCESS']} Backup created at: {backup_path}{Style.RESET_ALL}")
         
-        # Move temporary file to original position
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        os.remove(file_path)
         shutil.move(tmp_path, file_path)
 
-        # Restore original permissions
         os.chmod(file_path, original_mode)
-        if os.name != "nt":  # Not Windows
+        if os.name != "nt":
             os.chown(file_path, original_uid, original_gid)
 
-        print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('reset.file_modified')}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}{EMOJI['SUCCESS']} File modified successfully.{Style.RESET_ALL}")
         return True
 
     except Exception as e:
-        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.modify_file_failed', error=str(e))}{Style.RESET_ALL}")
-        if "tmp_path" in locals():
+        print(f"{Fore.RED}{EMOJI['ERROR']} Modification failed: {e}{Style.RESET_ALL}")
+        if 'tmp_path' in locals():
             try:
                 os.unlink(tmp_path)
             except:
                 pass
         return False
     
+
 def run(translator=None):
     config = get_config(translator)
     if not config:
         return False
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}{EMOJI['RESET']} {translator.get('bypass_token_limit.title')}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{EMOJI['RESET']} Bypass Windsurf token limits{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'='*50}{Style.RESET_ALL}\n")
 
-    modify_workbench_js(get_workbench_cursor_path(translator), translator)
+    js_path = get_workbench_windsurf_path(translator)
+    modify_workbench_js(js_path, translator)
 
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
-    input(f"{EMOJI['INFO']} {translator.get('bypass_token_limit.press_enter')}...")
+    input(f"{EMOJI['INFO']} Press Enter to exit...")
 
 if __name__ == "__main__":
     from main import translator as main_translator
