@@ -1,19 +1,23 @@
 import requests
 import re
 import datetime
+import time
 from typing import Optional
 from .email_tab_interface import EmailTabInterface
 
 class TempMailPlusTab(EmailTabInterface):
     """Implementation of EmailTabInterface for tempmail.plus"""
     
-    def __init__(self, email: str, epin: str, translator=None):
+    def __init__(self, email: str, epin: str, translator=None, 
+                polling_interval: int = 2, max_attempts: int = 10):
         """Initialize TempMailPlusTab
         
         Args:
             email: The email address to check
             epin: The epin token for authentication
             translator: Optional translator for internationalization
+            polling_interval: Time in seconds between polling attempts
+            max_attempts: Maximum number of polling attempts
         """
         self.email = email
         self.epin = epin
@@ -35,8 +39,13 @@ class TempMailPlusTab(EmailTabInterface):
             'x-requested-with': 'XMLHttpRequest'
         }
         self.cookies = {'email': email}
-        self._cached_mail_id = None  # 缓存mail_id
-        self._cached_verification_code = None  # 缓存验证码
+        self._cached_mail_id = None  # Cache for mail_id
+        self._cached_verification_code = None  # Cache for verification code
+        
+        # Polling configuration
+        self.polling_interval = polling_interval
+        self.max_attempts = max_attempts
+        self.current_attempt = 0
         
     def refresh_inbox(self) -> None:
         """Refresh the email inbox"""
@@ -44,6 +53,42 @@ class TempMailPlusTab(EmailTabInterface):
             
     def check_for_cursor_email(self) -> bool:
         """Check if there is a new email and immediately retrieve verification code
+        
+        Returns:
+            bool: True if new email found and verification code retrieved, False otherwise
+        """
+        # Reset attempt counter
+        self.current_attempt = 0
+            
+        # Polling logic
+        while self.current_attempt < self.max_attempts:
+            found = self._check_email_once()
+            if found:
+                # Successfully found email and retrieved verification code
+                self.current_attempt = 0  # Reset counter for next use
+                return True
+                
+            # Not found, continue polling
+            self.current_attempt += 1
+            if self.current_attempt < self.max_attempts:
+                # Print polling status information
+                if self.translator:
+                    print(self.translator.get('tempmail.polling', 
+                                            attempt=self.current_attempt, 
+                                            max=self.max_attempts))
+                else:
+                    print(f"Polling for email: attempt {self.current_attempt}/{self.max_attempts}")
+                time.sleep(self.polling_interval)
+            
+        # Exceeded maximum attempts
+        if self.translator:
+            print(self.translator.get('tempmail.max_attempts_reached'))
+        else:
+            print(f"Max attempts ({self.max_attempts}) reached. No verification email found.")
+        return False
+        
+    def _check_email_once(self) -> bool:
+        """Single attempt to check for email
         
         Returns:
             bool: True if new email found and verification code retrieved, False otherwise
@@ -63,11 +108,11 @@ class TempMailPlusTab(EmailTabInterface):
             
             data = response.json()
             if data.get('result') and data.get('mail_list'):
-                # 检查邮件列表中的第一个邮件是否为新邮件
+                # Check if the first email in the list is a new email
                 if data['mail_list'][0].get('is_new') == True:
-                    self._cached_mail_id = data['mail_list'][0].get('mail_id')  # 缓存mail_id
+                    self._cached_mail_id = data['mail_list'][0].get('mail_id')  # Cache the mail_id
                     
-                    # 立即获取验证码
+                    # Immediately retrieve verification code
                     verification_code = self._extract_verification_code()
                     if verification_code:
                         self._cached_verification_code = verification_code
@@ -103,7 +148,7 @@ class TempMailPlusTab(EmailTabInterface):
             if not data.get('result'):
                 return ""
                 
-            # 验证发件人邮箱是否包含cursor字符串
+            # Verify if sender email contains cursor string
             from_mail = data.get('from_mail', '')
             if 'cursor' not in from_mail.lower():
                 return ""
@@ -129,13 +174,12 @@ class TempMailPlusTab(EmailTabInterface):
 
 if __name__ == "__main__":
     import os
-    import time
     import sys
     import configparser
     
     from config import get_config
     
-    # 尝试导入 translator
+    # Try to import translator
     try:
         from main import Translator
         translator = Translator()
@@ -150,15 +194,15 @@ if __name__ == "__main__":
         
         print(f"{translator.get('tempmail.configured_email', email=email) if translator else f'Configured email: {email}'}")
         
-        # 初始化TempMailPlusTab，传递 translator
+        # Initialize TempMailPlusTab, pass translator
         mail_tab = TempMailPlusTab(email, epin, translator)
         
-        # 检查是否有Cursor的邮件
+        # Check if there is a Cursor email
         print(f"{translator.get('tempmail.checking_email') if translator else 'Checking for Cursor verification email...'}")
         if mail_tab.check_for_cursor_email():
             print(f"{translator.get('tempmail.email_found') if translator else 'Found Cursor verification email'}")
             
-            # 获取验证码
+            # Get verification code
             verification_code = mail_tab.get_verification_code()
             if verification_code:
                 print(f"{translator.get('tempmail.verification_code', code=verification_code) if translator else f'Verification code: {verification_code}'}")
