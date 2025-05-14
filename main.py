@@ -725,7 +725,7 @@ def main():
                     print_menu()   
                 case "2":
                     import cursor_register_manual
-                    cursor_register_manual.main(translator)
+                    cursor_register_manual.main(translator, use_priority_email_tab=True)
                     print_menu()    
                 case "3":
                     import quit_cursor

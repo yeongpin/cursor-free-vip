@@ -8,6 +8,7 @@ from reset_machine_manual import MachineIDResetter
 from get_user_token import get_token_from_cookie
 from config import get_config
 from account_manager import AccountManager
+from email_tabs.priority_email_tab import PriorityEmailTab
 
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
@@ -33,7 +34,7 @@ EMOJI = {
 }
 
 class CursorRegistration:
-    def __init__(self, translator=None):
+    def __init__(self, translator=None, use_priority_email_tab=True):
         self.translator = translator
         # Set to display mode
         os.environ['BROWSER_HEADLESS'] = 'False'
@@ -44,6 +45,7 @@ class CursorRegistration:
         self.email_address = None
         self.signup_tab = None
         self.email_tab = None
+        self.use_priority_email_tab = use_priority_email_tab
         
         # initialize Faker instance
         self.faker = Faker()
@@ -60,6 +62,10 @@ class CursorRegistration:
         print(f"\n{Fore.CYAN}{EMOJI['PASSWORD']} {self.translator.get('register.password')}: {self.password} {Style.RESET_ALL}")
         print(f"{Fore.CYAN}{EMOJI['FORM']} {self.translator.get('register.first_name')}: {self.first_name} {Style.RESET_ALL}")
         print(f"{Fore.CYAN}{EMOJI['FORM']} {self.translator.get('register.last_name')}: {self.last_name} {Style.RESET_ALL}")
+        if self.use_priority_email_tab:
+            self.email_tab = PriorityEmailTab(self.translator)
+            self.email_address = self.email_tab.get_email_address()
+            print(f"{Fore.CYAN}{EMOJI['MAIL']} Using temp email: {self.email_address}{Style.RESET_ALL}")
 
     def _generate_password(self, length=12):
         """Generate password"""
@@ -67,6 +73,9 @@ class CursorRegistration:
 
     def setup_email(self):
         """Setup Email"""
+        if self.use_priority_email_tab:
+            # Already set up in __init__
+            return True
         try:
             # Try to get a suggested email
             account_manager = AccountManager(self.translator)
@@ -123,7 +132,7 @@ class CursorRegistration:
             
             # Check if tempmail_plus is enabled
             config = get_config(self.translator)
-            email_tab = None
+            email_tab = self.email_tab
             if config and config.has_section('TempMailPlus'):
                 if config.getboolean('TempMailPlus', 'enabled'):
                     email = config.get('TempMailPlus', 'email')
@@ -274,13 +283,13 @@ class CursorRegistration:
         auth_manager = CursorAuth(translator=self.translator)
         return auth_manager.update_auth(email, access_token, refresh_token, auth_type)
 
-def main(translator=None):
+def main(translator=None, use_priority_email_tab=True):
     """Main function to be called from main.py"""
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{EMOJI['START']} {translator.get('register.title')}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
 
-    registration = CursorRegistration(translator)
+    registration = CursorRegistration(translator, use_priority_email_tab=use_priority_email_tab)
     registration.start()
 
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
