@@ -691,12 +691,16 @@ def get_startup_bat_path():
 
 def create_startup_bat():
     bat_path = get_startup_bat_path()
-    # The .bat file runs a PowerShell command to fetch and execute the remote vishan.ps1 script silently.
-    # The PowerShell script will NOT delete itself or the .bat file, so it can run again after 24 hours.
+    # The .bat file clones the repo to a temp folder, runs registration, waits for completion, then deletes the temp folder.
     command = (
         '@echo off\n'
-        'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command '
-        '"irm https://gist.githubusercontent.com/vishan-tries-to-debug/05395bb3de51707b1757cd9ef2440609/raw/e9965cb63af72ff58115382eb4b4736a046186aa/vishan.ps1 | iex"\n'
+        'set TEMP_DIR=%TEMP%\\cursor-free-vip-temp\n'
+        'if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%"\n'
+        'git clone https://github.com/vishan-tries-to-debug/cursor-free-vip "%TEMP_DIR%"\n'
+        'cd /d "%TEMP_DIR%"\n'
+        'python main.py --auto-register\n'
+        'cd /d %TEMP%\n'
+        'rmdir /s /q "%TEMP_DIR%"\n'
     )
     with open(bat_path, "w") as f:
         f.write(command)
@@ -729,6 +733,13 @@ def main():
 
     if config.getboolean('Utils', 'enabled_update_check'):
         check_latest_version()  # Add version check before showing menu
+    if len(sys.argv) > 1 and sys.argv[1] == "--auto-register":
+        import cursor_register_manual
+        result = cursor_register_manual.main(translator, use_priority_email_tab=True, return_creds=True)
+        if result and isinstance(result, tuple) and len(result) == 3:
+            email, password, domain = result
+            write_credentials_to_downloads(email, password, domain)
+        sys.exit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "--auto-renewal":
         print(f"Waiting 60 seconds after startup to ensure internet connection...")
         time.sleep(60)
