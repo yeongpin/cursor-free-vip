@@ -19,7 +19,8 @@
         "totally_reset": "Полностью сбросить Cursor",
         "outdate": "Устаревший",
         "temp_github_register": "Временная регистрация GitHub",
-        "coming_soon": "Скоро",
+        "coming_soon": "Скоро будет",
+        "automated_renewal": "Автоматическое продление (запуск при старте системы)",
         "fixed_soon": "Скоро будет исправлено",
         "contribute": "Внести вклад в проект",
         "config": "Показать конфигурацию",
@@ -36,7 +37,9 @@
         "language_config_saved": "Языковая конфигурация успешно сохранилась",
         "lang_invalid_choice": "Неверный выбор. Пожалуйста, введите один из следующих вариантов: ({lang_choices})",
         "manual_custom_auth": "Ручная пользовательская аут",
-        "admin_required_continue": "Продолжение без привилегий администратора."
+        "admin_required_continue": "Продолжение без привилегий администратора.",
+        "register_cursor_custom_email": "Регистрация Cursor с пользовательской почтой",
+        "register_cursor_custom_email_headless": "Регистрация Cursor с пользовательской почтой (без интерфейса)"
     },
     "languages": {
         "ar": "Арабский",

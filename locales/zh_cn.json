@@ -6,7 +6,8 @@
         "register": "注册新的Cursor账户",
         "register_google": "使用自己的Google账户注册",
         "register_github": "使用自己的GitHub账户注册",
-        "register_manual": "使用自定义邮箱注册Cursor",
+        "register_cursor_custom_email": "使用自定义邮箱注册 Cursor",
+        "register_cursor_custom_email_headless": "使用自定义邮箱注册 Cursor（无头模式）",
         "quit": "关闭Cursor应用",
         "select_language": "更改语言",
         "select_chrome_profile": "选择Chrome配置文件",
@@ -36,7 +37,8 @@
         "language_config_saved": "语言配置保存成功",
         "lang_invalid_choice": "选择无效。请输入以下选项之一：({lang_choices})",
         "restore_machine_id": "从备份恢复机器ID",
-        "manual_custom_auth": "手动自定义验证"
+        "manual_custom_auth": "手动自定义验证",
+        "automated_renewal": "自动续期（开机自启）"
     },
     "languages": {
         "ar": "阿拉伯语",

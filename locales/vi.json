@@ -23,6 +23,7 @@
         "admin_required": "Đang chạy dưới dạng tệp thực thi, yêu cầu quyền quản trị.",
         "admin_required_continue": "Tiếp tục mà không có quyền quản trị.",
         "coming_soon": "Sắp ra mắt",
+        "automated_renewal": "Gia hạn tự động (Khởi động cùng máy tính)",
         "fixed_soon": "Sẽ Sớm Được Sửa",
         "contribute": "Đóng Góp Cho Dự Án",
         "config": "Hiển Thị Cấu Hình",
@@ -36,7 +37,9 @@
         "language_config_saved": "Đổi ngôn ngữ thành công",
         "lang_invalid_choice": "Lựa chọn không hợp lệ. Vui lòng nhập một số từ ({lang_choices})",
         "restore_machine_id": "Khôi phục ID máy từ bản sao lưu",
-        "manual_custom_auth": "Thủ công tùy chỉnh auth"
+        "manual_custom_auth": "Thủ công tùy chỉnh auth",
+        "register_cursor_custom_email": "Đăng Ký Cursor Với Email Tùy Chỉnh",
+        "register_cursor_custom_email_headless": "Đăng Ký Cursor Với Email Tùy Chỉnh - Chế Độ Ẩn (Headless)"
     },
     "languages": {
         "ar": "Tiếng Ả Rập",

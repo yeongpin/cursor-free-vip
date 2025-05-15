@@ -363,22 +363,23 @@ def print_menu():
     menu_items = {
         0: f"{Fore.GREEN}0{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.exit')}",
         1: f"{Fore.GREEN}1{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.reset')}",
-        2: f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['SUCCESS']} {translator.get('menu.register_manual')}",
-        3: f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.quit')}",
-        4: f"{Fore.GREEN}4{Style.RESET_ALL}. {EMOJI['LANG']} {translator.get('menu.select_language')}",
-        5: f"{Fore.GREEN}5{Style.RESET_ALL}. {EMOJI['SUN']} {translator.get('menu.register_google')}",
-        6: f"{Fore.GREEN}6{Style.RESET_ALL}. {EMOJI['STAR']} {translator.get('menu.register_github')}",
-        7: f"{Fore.GREEN}7{Style.RESET_ALL}. {EMOJI['UPDATE']} {translator.get('menu.disable_auto_update')}",
-        8: f"{Fore.GREEN}8{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.totally_reset')}",
-        9: f"{Fore.GREEN}9{Style.RESET_ALL}. {EMOJI['CONTRIBUTE']} {translator.get('menu.contribute')}",
-        10: f"{Fore.GREEN}10{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.config')}",
-        11: f"{Fore.GREEN}11{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_version_check')}",
-        12: f"{Fore.GREEN}12{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.check_user_authorized')}",
-        13: f"{Fore.GREEN}13{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_token_limit')}",
-        14: f"{Fore.GREEN}14{Style.RESET_ALL}. {EMOJI['BACKUP']}  {translator.get('menu.restore_machine_id')}",
-        15: f"{Fore.GREEN}15{Style.RESET_ALL}. {EMOJI['ERROR']}  {translator.get('menu.delete_google_account')}",
-        16: f"{Fore.GREEN}16{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.select_chrome_profile')}",
-        17: f"{Fore.GREEN}17{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}"
+        2: f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['SUCCESS']} {translator.get('menu.register_cursor_custom_email', fallback='Register Cursor with Custom Email') if hasattr(translator, 'get') else 'Register Cursor with Custom Email'}",
+        3: f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['INFO']} {translator.get('menu.coming_soon', fallback='Coming Soon')}",
+        4: f"{Fore.GREEN}4{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.quit')}",
+        5: f"{Fore.GREEN}5{Style.RESET_ALL}. {EMOJI['LANG']} {translator.get('menu.select_language')}",
+        6: f"{Fore.GREEN}6{Style.RESET_ALL}. {EMOJI['SUN']} {translator.get('menu.register_google')}",
+        7: f"{Fore.GREEN}7{Style.RESET_ALL}. {EMOJI['STAR']} {translator.get('menu.register_github')}",
+        8: f"{Fore.GREEN}8{Style.RESET_ALL}. {EMOJI['UPDATE']} {translator.get('menu.disable_auto_update')}",
+        9: f"{Fore.GREEN}9{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.totally_reset')}",
+        10: f"{Fore.GREEN}10{Style.RESET_ALL}. {EMOJI['CONTRIBUTE']} {translator.get('menu.contribute')}",
+        11: f"{Fore.GREEN}11{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.config')}",
+        12: f"{Fore.GREEN}12{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_version_check')}",
+        13: f"{Fore.GREEN}13{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.check_user_authorized')}",
+        14: f"{Fore.GREEN}14{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_token_limit')}",
+        15: f"{Fore.GREEN}15{Style.RESET_ALL}. {EMOJI['BACKUP']}  {translator.get('menu.restore_machine_id')}",
+        16: f"{Fore.GREEN}16{Style.RESET_ALL}. {EMOJI['ERROR']}  {translator.get('menu.delete_google_account')}",
+        17: f"{Fore.GREEN}17{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.select_chrome_profile')}",
+        18: f"{Fore.GREEN}18{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}"
     }
     
     # Automatically calculate the number of menu items in the left and right columns
@@ -711,7 +712,7 @@ def main():
     
     while True:
         try:
-            choice_num = 17
+            choice_num = 18
             choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{choice_num}')}: {Style.RESET_ALL}")
 
             match choice:
@@ -728,64 +729,66 @@ def main():
                     cursor_register_manual.main(translator, use_priority_email_tab=True)
                     print_menu()    
                 case "3":
+                    print(f"\n{Fore.YELLOW}{translator.get('menu.coming_soon', fallback='Coming soon!')}{Style.RESET_ALL}")
+                    print_menu()
+                case "4":
                     import quit_cursor
                     quit_cursor.quit_cursor(translator)
                     print_menu()
-                case "4":
+                case "5":
                     if select_language():
                         print_menu()
                     continue
-                case "5":
+                case "6":
                     from oauth_auth import main as oauth_main
                     oauth_main('google',translator)
                     print_menu()
-                case "6":
+                case "7":
                     from oauth_auth import main as oauth_main
                     oauth_main('github',translator)
                     print_menu()
-                case "7":
+                case "8":
                     import disable_auto_update
                     disable_auto_update.run(translator)
                     print_menu()
-                case "8":
+                case "9":
                     import totally_reset_cursor
                     totally_reset_cursor.run(translator)
-                    # print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.fixed_soon')}{Style.RESET_ALL}")
                     print_menu()
-                case "9":
+                case "10":
                     import logo
                     print(logo.CURSOR_CONTRIBUTORS)
                     print_menu()
-                case "10":
+                case "11":
                     from config import print_config
                     print_config(get_config(), translator)
                     print_menu()
-                case "11":
+                case "12":
                     import bypass_version
                     bypass_version.main(translator)
                     print_menu()
-                case "12":
+                case "13":
                     import check_user_authorized
                     check_user_authorized.main(translator)
                     print_menu()
-                case "13":
+                case "14":
                     import bypass_token_limit
                     bypass_token_limit.run(translator)
                     print_menu()
-                case "14":
+                case "15":
                     import restore_machine_id
                     restore_machine_id.run(translator)
                     print_menu()
-                case "15":
+                case "16":
                     import delete_cursor_google
                     delete_cursor_google.main(translator)
                     print_menu()
-                case "16":
+                case "17":
                     from oauth_auth import OAuthHandler
                     oauth = OAuthHandler(translator)
                     oauth._select_profile()
                     print_menu()
-                case "17":
+                case "18":
                     import manual_custom_auth
                     manual_custom_auth.main(translator)
                     print_menu()

@@ -19,7 +19,8 @@
         "totally_reset": "Réinitialisation Complète de Cursor",
         "outdate": "Obsolete",
         "temp_github_register": "Inscription GitHub temporaire",
-        "coming_soon": "Bientôt",
+        "coming_soon": "Bientôt disponible",
+        "automated_renewal": "Renouvellement automatique (au démarrage)",
         "fixed_soon": "Bientôt Corrigé",
         "contribute": "Contribuer au Projet",
         "config": "Afficher la Configuration",
@@ -36,7 +37,9 @@
         "language_config_saved": "Configuration du langage enregistré avec succès",
         "lang_invalid_choice": "Choix non valide. Veuillez saisir l'une des options suivantes: ({Lang_Choices})",
         "manual_custom_auth": "Auth personnalisé manuel",
-        "admin_required_continue": "Poursuivant sans privilèges d'administrateur."
+        "admin_required_continue": "Poursuivant sans privilèges d'administrateur.",
+        "register_cursor_custom_email": "Enregistrer Cursor avec un e-mail personnalisé",
+        "register_cursor_custom_email_headless": "Enregistrer Cursor avec un e-mail personnalisé - Mode sans interface"
     },
     "languages": {
         "ar": "Arabe",

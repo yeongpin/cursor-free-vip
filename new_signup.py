@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 from config import get_config 
 from utils import get_default_browser_path as utils_get_default_browser_path
+from utils import ProgressBar
 
 # Add global variable at the beginning of the file
 _translator = None
@@ -70,43 +71,41 @@ def simulate_human_input(page, url, config, translator=None):
 
 def fill_signup_form(page, first_name, last_name, email, config, translator=None):
     """Fill signup form"""
+    pb = ProgressBar("Filling registration form...")
+    pb.start()
     try:
         if translator:
             print(f"{Fore.CYAN}📧 {translator.get('register.filling_form')}{Style.RESET_ALL}")
         else:
             print("\n正在填写注册表单...")
-        
         # Fill first name
         first_name_input = page.ele("@name=first_name")
         if first_name_input:
             first_name_input.input(first_name)
             time.sleep(get_random_wait_time(config, 'input_wait'))
-        
         # Fill last name
         last_name_input = page.ele("@name=last_name")
         if last_name_input:
             last_name_input.input(last_name)
             time.sleep(get_random_wait_time(config, 'input_wait'))
-        
         # Fill email
         email_input = page.ele("@name=email")
         if email_input:
             email_input.input(email)
             time.sleep(get_random_wait_time(config, 'input_wait'))
-        
         # Click submit button
         submit_button = page.ele("@type=submit")
         if submit_button:
             submit_button.click()
             time.sleep(get_random_wait_time(config, 'submit_wait'))
-            
+        pb.stop("Form filled!")
         if translator:
             print(f"{Fore.GREEN}✅ {translator.get('register.form_success')}{Style.RESET_ALL}")
         else:
             print("Form filled successfully")
         return True
-        
     except Exception as e:
+        pb.stop("Form fill failed!")
         if translator:
             print(f"{Fore.RED}❌ {translator.get('register.form_error', error=str(e))}{Style.RESET_ALL}")
         else:
@@ -170,6 +169,15 @@ def setup_driver(translator=None):
     try:
         # Get config
         config = get_config(translator)
+        if not config:
+            raise Exception("Config could not be loaded. Please check your config file.")
+        # Ensure [Browser] section and defaults exist
+        if not config.has_section('Browser'):
+            config.add_section('Browser')
+        if not config.has_option('Browser', 'default_browser'):
+            config.set('Browser', 'default_browser', 'chrome')
+        if not config.has_option('Browser', 'chrome_path'):
+            config.set('Browser', 'chrome_path', utils_get_default_browser_path('chrome'))
         
         # Get browser type and path
         browser_type = config.get('Browser', 'default_browser', fallback='chrome')
@@ -199,11 +207,44 @@ def setup_driver(translator=None):
             # Set Linux specific options
             co.set_argument("--no-sandbox")
             
+        # Stealth: Add arguments to mask automation (keep for anti-bot, but not headless)
+        co.set_argument("--disable-blink-features=AutomationControlled")
+        co.set_argument("--disable-infobars")
+        co.set_argument("--disable-dev-shm-usage")
+        co.set_argument("--disable-gpu")
+        co.set_argument("--disable-extensions")
+        co.set_argument("--disable-default-apps")
+        co.set_argument("--disable-popup-blocking")
+        co.set_argument("--disable-notifications")
+        co.set_argument("--disable-translate")
+        co.set_argument("--disable-background-networking")
+        co.set_argument("--disable-background-timer-throttling")
+        co.set_argument("--disable-backgrounding-occluded-windows")
+        co.set_argument("--disable-breakpad")
+        co.set_argument("--disable-client-side-phishing-detection")
+        co.set_argument("--disable-component-extensions-with-background-pages")
+        co.set_argument("--disable-features=site-per-process,TranslateUI")
+        co.set_argument("--disable-hang-monitor")
+        co.set_argument("--disable-ipc-flooding-protection")
+        co.set_argument("--disable-prompt-on-repost")
+        co.set_argument("--disable-renderer-backgrounding")
+        co.set_argument("--disable-sync")
+        co.set_argument("--metrics-recording-only")
+        co.set_argument("--no-first-run")
+        co.set_argument("--safebrowsing-disable-auto-update")
+        co.set_argument("--password-store=basic")
+        co.set_argument("--use-mock-keychain")
+        # Set a common user-agent
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        co.set_argument(f"--user-agent={user_agent}")
+        
         # Set random port
         co.auto_port()
         
-        # Use headless mode (must be set to False, simulate human operation)
+        # Do NOT use headless mode
         co.headless(False)
+        if translator:
+            print(f"{'[Visible]'} browser mode enabled.")
         
         # Log browser info
         if translator:
@@ -241,11 +282,18 @@ def setup_driver(translator=None):
         except:
             pass
             
-        # Launch browser
+        # Launch browser with progress bar
+        pb = ProgressBar("Starting browser...")
+        pb.start()
         page = ChromiumPage(co)
-        
-        # Wait a moment for browser to fully launch
+        # Patch navigator.webdriver to false
+        try:
+            page.run_js("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        except Exception as e:
+            if translator:
+                print(f"{Fore.YELLOW}⚠️ JS stealth patch failed: {e}{Style.RESET_ALL}")
         time.sleep(1)
+        pb.stop("Browser started!")
         
         # Record browser processes after launching and find new ones
         try:
@@ -274,37 +322,33 @@ def setup_driver(translator=None):
 
 def handle_turnstile(page, config, translator=None):
     """Handle Turnstile verification"""
+    pb = ProgressBar("Verifying human...")
+    pb.start()
     try:
         if translator:
-            print(f"{Fore.CYAN}🔄 {translator.get('register.handling_turnstile')}{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}🔄 {translator.get('register.handling_turnstile')}{Style.RESET_ALL}")
         else:
-            print("\nHandling Turnstile verification...")
-        
-        # from config
-        turnstile_time = float(config.get('Turnstile', 'handle_turnstile_time', fallback='2'))
-        random_time_str = config.get('Turnstile', 'handle_turnstile_random_time', fallback='1-3')
-        
+            print("\nProcessing security verification...\n")
+        # Default: wait 5s after each attempt, random wait 3-7s between retries
+        turnstile_time = float(config.get('Turnstile', 'handle_turnstile_time', fallback='5'))
+        random_time_str = config.get('Turnstile', 'handle_turnstile_random_time', fallback='3-7')
         # Parse random time range
         try:
             min_time, max_time = map(float, random_time_str.split('-'))
         except:
-            min_time, max_time = 1, 3  # Default value
-        
-        max_retries = 2
+            min_time, max_time = 3, 7  # Default value
+        max_retries = 4  # Increased patience: more retries
         retry_count = 0
-
         while retry_count < max_retries:
             retry_count += 1
             if translator:
-                print(f"{Fore.CYAN}🔄 {translator.get('register.retry_verification', attempt=retry_count)}{Style.RESET_ALL}")
+                print(f"\n{Fore.CYAN}🔄 {translator.get('register.retry_verification', attempt=retry_count)}{Style.RESET_ALL}")
             else:
-                print(f"Attempt {retry_count} of verification...")
-
+                print(f"\nRetrying verification... (Attempt {retry_count})\n")
             try:
                 # Try to reset turnstile
                 page.run_js("try { turnstile.reset() } catch(e) { }")
                 time.sleep(turnstile_time)  # from config
-
                 # Locate verification box element
                 challenge_check = (
                     page.ele("@id=cf-turnstile", timeout=2)
@@ -313,53 +357,50 @@ def handle_turnstile(page, config, translator=None):
                     .ele("tag:body")
                     .sr("tag:input")
                 )
-
                 if challenge_check:
                     if translator:
-                        print(f"{Fore.CYAN}🔄 {translator.get('register.detect_turnstile')}{Style.RESET_ALL}")
+                        print(f"\n{Fore.CYAN}🔄 {translator.get('register.detect_turnstile')}{Style.RESET_ALL}")
                     else:
-                        print("Detected verification box...")
-                    
+                        print("\nDetected security verification...\n")
                     # from config
                     time.sleep(random.uniform(min_time, max_time))
                     challenge_check.click()
                     time.sleep(turnstile_time)  # from config
-
                     # check verification result
                     if check_verification_success(page, translator):
+                        pb.stop("Verification passed!")
                         if translator:
-                            print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
+                            print(f"\n{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}\n")
                         else:
-                            print("Verification successful!")
+                            print("\nVerification successful!\n")
                         return True
-
             except Exception as e:
                 if translator:
-                    print(f"{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}")
+                    print(f"\n{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}\n")
                 else:
-                    print(f"Verification attempt failed: {e}")
-
+                    print(f"\nVerification attempt failed.\n")
             # Check if verification has been successful
             if check_verification_success(page, translator):
+                pb.stop("Verification passed!")
                 if translator:
-                    print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
+                    print(f"\n{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}\n")
                 else:
-                    print("Verification successful!")
+                    print("\nVerification successful!\n")
                 return True
-
             time.sleep(random.uniform(min_time, max_time))
-
+        pb.stop("Verification failed!")
         if translator:
-            print(f"{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}")
+            print(f"\n{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}\n")
         else:
-            print("Exceeded maximum retry attempts")
+            print("\nExceeded maximum retry attempts.\n")
+        print("\n[!] Automated verification failed. This is likely due to advanced anti-bot protection.\nIf you see a CAPTCHA or human verification, please solve it manually in the browser, or consider integrating a CAPTCHA-solving service.\n")
         return False
-
     except Exception as e:
+        pb.stop("Verification error!")
         if translator:
-            print(f"{Fore.RED}❌ {translator.get('register.verification_error', error=str(e))}{Style.RESET_ALL}")
+            print(f"\n{Fore.RED}❌ {translator.get('register.verification_error', error=str(e))}{Style.RESET_ALL}\n")
         else:
-            print(f"Error in verification process: {e}")
+            print(f"\nError in verification process: {e}\n")
         return False
 
 def check_verification_success(page, translator=None):
@@ -396,6 +437,8 @@ def fill_password(page, password: str, config, translator=None):
     """
     Fill password form
     """
+    pb = ProgressBar("Setting password...")
+    pb.start()
     try:
         print(f"{Fore.CYAN}🔑 {translator.get('register.setting_password') if translator else 'Setting password'}{Style.RESET_ALL}")
         
@@ -411,11 +454,13 @@ def fill_password(page, password: str, config, translator=None):
             submit_button.click()
             time.sleep(get_random_wait_time(config, 'submit_wait'))
             
+        pb.stop("Password set!")
         print(f"{Fore.GREEN}✅ {translator.get('register.password_submitted') if translator else 'Password submitted'}{Style.RESET_ALL}")
         
         return True
         
     except Exception as e:
+        pb.stop("Password set failed!")
         print(f"{Fore.RED}❌ {translator.get('register.password_error', error=str(e)) if translator else f'Error setting password: {str(e)}'}{Style.RESET_ALL}")
 
         return False
@@ -423,143 +468,108 @@ def fill_password(page, password: str, config, translator=None):
 def handle_verification_code(browser_tab, email_tab, controller, config, translator=None):
     """Handle verification code"""
     try:
+        # Section header
+        print("\n== Waiting for Verification Code ==")
+        # Only print once
         if translator:
-            print(f"\n{Fore.CYAN}🔄 {translator.get('register.waiting_for_verification_code')}{Style.RESET_ALL}")
-            
+            print(f"{Fore.CYAN}⏳ {translator.get('register.waiting_for_verification_code')}{Style.RESET_ALL}")
+        else:
+            print("⏳ Waiting for verification code...")
         # Check if using manual input verification code
         if hasattr(controller, 'get_verification_code') and email_tab is None:  # Manual mode
             verification_code = controller.get_verification_code()
             if verification_code:
-                # Fill verification code in registration page
                 for i, digit in enumerate(verification_code):
                     browser_tab.ele(f"@data-index={i}").input(digit)
                     time.sleep(get_random_wait_time(config, 'verification_code_input'))
-                
-                print(f"{translator.get('register.verification_success')}")
+                print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
                 time.sleep(get_random_wait_time(config, 'verification_success_wait'))
-                
-                # Handle last Turnstile verification
                 if handle_turnstile(browser_tab, config, translator):
-                    if translator:
-                        print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
+                    print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
                     time.sleep(get_random_wait_time(config, 'verification_retry_wait'))
-                    
-                    # Visit settings page
-                    print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url')}: https://www.cursor.com/settings{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url') if translator else 'Visiting URL'}: https://www.cursor.com/settings{Style.RESET_ALL}")
                     browser_tab.get("https://www.cursor.com/settings")
                     time.sleep(get_random_wait_time(config, 'settings_page_load_wait'))
                     return True, browser_tab
-                    
                 return False, None
-                
         # Automatic verification code logic
         elif email_tab:
-            print(f"{Fore.CYAN}🔄 {translator.get('register.waiting_for_verification_code')}{Style.RESET_ALL}")
+            pb = ProgressBar("Waiting for verification code...")
+            pb.start()
             time.sleep(get_random_wait_time(config, 'email_check_initial_wait'))
-
-            # Use existing email_tab to refresh email
             email_tab.refresh_inbox()
             time.sleep(get_random_wait_time(config, 'email_refresh_wait'))
-
-            # Check if there is a verification code email
             if email_tab.check_for_cursor_email():
+                pb.stop("Verification code received!")
                 verification_code = email_tab.get_verification_code()
                 if verification_code:
-                    # Fill verification code in registration page
                     for i, digit in enumerate(verification_code):
                         browser_tab.ele(f"@data-index={i}").input(digit)
                         time.sleep(get_random_wait_time(config, 'verification_code_input'))
-                    
-                    if translator:
-                        print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
+                    print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
                     time.sleep(get_random_wait_time(config, 'verification_success_wait'))
-                    
-                    # Handle last Turnstile verification
                     if handle_turnstile(browser_tab, config, translator):
-                        if translator:
-                            print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
                         time.sleep(get_random_wait_time(config, 'verification_retry_wait'))
-                        
-                        # Visit settings page
-                        if translator:
-                            print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url')}: https://www.cursor.com/settings{Style.RESET_ALL}")
+                        print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url') if translator else 'Visiting URL'}: https://www.cursor.com/settings{Style.RESET_ALL}")
                         browser_tab.get("https://www.cursor.com/settings")
                         time.sleep(get_random_wait_time(config, 'settings_page_load_wait'))
                         return True, browser_tab
-                        
                     else:
-                        if translator:
-                            print(f"{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}")
-                        else:
-                            print("最后一次验证失败")
+                        print(f"{Fore.RED}❌ {translator.get('register.verification_failed') if translator else 'Verification failed.'}{Style.RESET_ALL}")
                         return False, None
-                        
-            # Get verification code, set timeout
-            verification_code = None
-            max_attempts = 20
-            retry_interval = get_random_wait_time(config, 'retry_interval')  # Use get_random_wait_time
-            start_time = time.time()
-            timeout = float(config.get('Timing', 'max_timeout', fallback='160'))  # This can be kept unchanged because it is a fixed value
-
-            if translator:
-                print(f"{Fore.CYAN}{translator.get('register.start_getting_verification_code')}{Style.RESET_ALL}")
-            
-            for attempt in range(max_attempts):
-                # Check if timeout
-                if time.time() - start_time > timeout:
-                    if translator:
-                        print(f"{Fore.RED}❌ {translator.get('register.verification_timeout')}{Style.RESET_ALL}")
-                    break
-                    
-                verification_code = controller.get_verification_code()
-                if verification_code:
-                    if translator:
-                        print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
-                    break
-                    
-                remaining_time = int(timeout - (time.time() - start_time))
-                if translator:
-                    print(f"{Fore.CYAN}{translator.get('register.try_get_code', attempt=attempt + 1, time=remaining_time)}{Style.RESET_ALL}")
-                
-                # Refresh email
-                email_tab.refresh_inbox()
-                time.sleep(retry_interval)  # Use get_random_wait_time
-            
-            if verification_code:
-                # Fill verification code in registration page
-                for i, digit in enumerate(verification_code):
-                    browser_tab.ele(f"@data-index={i}").input(digit)
-                    time.sleep(get_random_wait_time(config, 'verification_code_input'))
-                
-                if translator:
-                    print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
-                time.sleep(get_random_wait_time(config, 'verification_success_wait'))
-                
-                # Handle last Turnstile verification
-                if handle_turnstile(browser_tab, config, translator):
-                    if translator:
-                        print(f"{Fore.GREEN}✅ {translator.get('register.verification_success')}{Style.RESET_ALL}")
-                    time.sleep(get_random_wait_time(config, 'verification_retry_wait'))
-                    
-                    # Visit settings page
-                    if translator:
-                        print(f"{Fore.CYAN}{translator.get('register.visiting_url')}: https://www.cursor.com/settings{Style.RESET_ALL}")
-                    browser_tab.get("https://www.cursor.com/settings")
-                    time.sleep(get_random_wait_time(config, 'settings_page_load_wait'))
-                    
-                    # Return success directly, let cursor_register.py handle account information acquisition
-                    return True, browser_tab
-                    
                 else:
-                    if translator:
-                        print(f"{Fore.RED}❌ {translator.get('register.verification_failed')}{Style.RESET_ALL}")
+                    pb.stop("No verification code received in time.")
+                    print(f"{Fore.RED}❌ No verification code received in time.{Style.RESET_ALL}")
                     return False, None
-                
+            pb.stop("No verification code received in time.")
+            print(f"{Fore.RED}❌ No verification code received in time.{Style.RESET_ALL}")
             return False, None
-            
+        # Get verification code, set timeout
+        verification_code = None
+        max_attempts = 20
+        retry_interval = get_random_wait_time(config, 'retry_interval')
+        start_time = time.time()
+        timeout = float(config.get('Timing', 'max_timeout', fallback='160'))
+        for attempt in range(max_attempts):
+            if time.time() - start_time > timeout:
+                print(f"{Fore.RED}❌ {translator.get('register.verification_timeout') if translator else 'Verification code timeout.'}{Style.RESET_ALL}")
+                print("[!] No verification code received. This may be due to temp email provider issues, anti-bot detection, or email delivery delays.")
+                print("    - Try a different temp email provider.")
+                print("    - Try running in visible (non-headless) mode.")
+                print("    - Check your network or try again later.")
+                break
+            verification_code = controller.get_verification_code()
+            if verification_code:
+                print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification code received!'}{Style.RESET_ALL}")
+                break
+            remaining_time = int(timeout - (time.time() - start_time))
+            if retry_interval > 2 and attempt == 0:
+                print(f"⏳ Still waiting for verification code... (up to {remaining_time}s left)")
+            email_tab.refresh_inbox()
+            time.sleep(retry_interval)
+        if verification_code:
+            for i, digit in enumerate(verification_code):
+                browser_tab.ele(f"@data-index={i}").input(digit)
+                time.sleep(get_random_wait_time(config, 'verification_code_input'))
+            print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
+            time.sleep(get_random_wait_time(config, 'verification_success_wait'))
+            if handle_turnstile(browser_tab, config, translator):
+                print(f"{Fore.GREEN}✅ {translator.get('register.verification_success') if translator else 'Verification successful!'}{Style.RESET_ALL}")
+                time.sleep(get_random_wait_time(config, 'verification_retry_wait'))
+                print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url') if translator else 'Visiting URL'}: https://www.cursor.com/settings{Style.RESET_ALL}")
+                browser_tab.get("https://www.cursor.com/settings")
+                time.sleep(get_random_wait_time(config, 'settings_page_load_wait'))
+                return True, browser_tab
+            else:
+                print(f"{Fore.RED}❌ {translator.get('register.verification_failed') if translator else 'Verification failed.'}{Style.RESET_ALL}")
+                return False, None
+        print(f"{Fore.RED}❌ {translator.get('register.verification_failed') if translator else 'Verification failed.'}{Style.RESET_ALL}")
+        print("[!] Registration failed. See above for troubleshooting suggestions.")
+        return False, None
     except Exception as e:
-        if translator:
-            print(f"{Fore.RED}❌ {translator.get('register.verification_error', error=str(e))}{Style.RESET_ALL}")
+        print(f"{Fore.RED}❌ {translator.get('register.verification_error', error=str(e)) if translator else f'Verification error: {e}'}{Style.RESET_ALL}")
+        print("[!] Registration failed due to an unexpected error.")
         return False, None
 
 def handle_sign_in(browser_tab, email, password, translator=None):
@@ -611,7 +621,7 @@ def handle_sign_in(browser_tab, email, password, translator=None):
         print(f"{Fore.RED}Login process error: {str(e)}{Style.RESET_ALL}")
         return False
 
-def main(email=None, password=None, first_name=None, last_name=None, email_tab=None, controller=None, translator=None):
+def main(email=None, password=None, first_name=None, last_name=None, email_tab=None, controller=None, translator=None, headless=True):
     """Main function, can receive account information, email tab, and translator"""
     global _translator
     global _chrome_process_ids
@@ -696,4 +706,5 @@ def main(email=None, password=None, first_name=None, last_name=None, email_tab=N
             cleanup_chrome_processes(translator)
 
 if __name__ == "__main__":
+    os.environ['BROWSER_HEADLESS'] = 'True'
     main()  # Run without parameters, use randomly generated information 

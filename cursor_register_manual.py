@@ -288,10 +288,18 @@ def main(translator=None, use_priority_email_tab=True):
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{EMOJI['START']} {translator.get('register.title')}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
-
     registration = CursorRegistration(translator, use_priority_email_tab=use_priority_email_tab)
+    from new_signup import main as new_signup_main
+    registration.start = lambda: new_signup_main(
+        email=registration.email_address,
+        password=registration.password,
+        first_name=registration.first_name,
+        last_name=registration.last_name,
+        email_tab=registration.email_tab,
+        controller=registration,
+        translator=registration.translator
+    )
     registration.start()
-
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
     input(f"{EMOJI['INFO']} {translator.get('register.press_enter')}...")
 

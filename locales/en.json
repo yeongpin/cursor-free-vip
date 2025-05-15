@@ -36,7 +36,10 @@
         "language_config_saved": "Language configuration saved successfully",
         "lang_invalid_choice": "Invalid choice. Please enter one of the following options: ({lang_choices})",
         "restore_machine_id": "Restore Machine ID from Backup",
-        "manual_custom_auth": "Manual Custom Auth"
+        "manual_custom_auth": "Manual Custom Auth",
+        "register_cursor_custom_email": "Register Cursor with Custom Email",
+        "register_cursor_custom_email_headless": "Register Cursor with Custom Email - Headless",
+        "automated_renewal": "Automated Renewal (Run on Startup)"
     },
     "languages": {
         "ar": "Arabic",

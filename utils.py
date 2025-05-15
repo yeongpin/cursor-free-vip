@@ -2,6 +2,8 @@ import os
 import sys
 import platform
 import random
+import threading
+import time
 
 def get_user_documents_path():
     """Get user documents path"""
@@ -231,4 +233,46 @@ def get_random_wait_time(config, timing_key):
         
     except (ValueError, TypeError, AttributeError):
         # Return default value if any error occurs
-        return random.uniform(0.5, 1.5) 
+        return random.uniform(0.5, 1.5)
+
+class ProgressBar:
+    def __init__(self, message="Processing..."):
+        self.message = message
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._animate)
+        self._bar_length = 30
+
+    def start(self):
+        self._stop_event.clear()
+        if not self._thread.is_alive():
+            self._thread = threading.Thread(target=self._animate)
+            self._thread.start()
+
+    def stop(self, end_message=None):
+        self._stop_event.set()
+        self._thread.join()
+        sys.stdout.write("\r" + " " * (self._bar_length + len(self.message) + 10) + "\r")
+        sys.stdout.flush()
+        if end_message:
+            print(end_message)
+
+    def _animate(self):
+        bar = [' '] * self._bar_length
+        pos = 0
+        direction = 1
+        while not self._stop_event.is_set():
+            bar = [' '] * self._bar_length
+            bar[pos] = '#'
+            sys.stdout.write(f"\r{self.message} |{''.join(bar)}|")
+            sys.stdout.flush()
+            time.sleep(0.07)
+            pos += direction
+            if pos == 0 or pos == self._bar_length - 1:
+                direction *= -1 
+
+def solve_captcha(image_or_sitekey, method='2captcha', api_key=None, url=None):
+    """Scaffold for CAPTCHA solving service integration. Returns None for now."""
+    print("[CAPTCHA] Detected a CAPTCHA challenge. No solving service configured.")
+    # To integrate: send image/sitekey to 2Captcha/Anti-Captcha and return the solution
+    # Example for 2Captcha: https://2captcha.com/2captcha-api
+    return None 
