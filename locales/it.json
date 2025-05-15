@@ -36,7 +36,8 @@
         "language_config_saved": "Configurazione lingua salvata con successo",
         "lang_invalid_choice": "Scelta non valida. Inserisci una delle seguenti opzioni: ({lang_choices})",
         "restore_machine_id": "Ripristina ID Macchina dal Backup",
-        "manual_custom_auth": "Auth personalizzato manuale"
+        "manual_custom_auth": "Auth personalizzato manuale",
+        "automated_renewal": "Rinnovo automatico (esegui all'avvio)"
     },
     "languages": {
         "ar": "Arabo",

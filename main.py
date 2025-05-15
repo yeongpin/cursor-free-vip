@@ -13,6 +13,9 @@ from config import get_config, force_update_config
 import shutil
 import re
 from utils import get_user_documents_path  
+from pathlib import Path
+import time
+import socket
 
 # Add these imports for Arabic support
 try:
@@ -379,7 +382,8 @@ def print_menu():
         15: f"{Fore.GREEN}15{Style.RESET_ALL}. {EMOJI['BACKUP']}  {translator.get('menu.restore_machine_id')}",
         16: f"{Fore.GREEN}16{Style.RESET_ALL}. {EMOJI['ERROR']}  {translator.get('menu.delete_google_account')}",
         17: f"{Fore.GREEN}17{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.select_chrome_profile')}",
-        18: f"{Fore.GREEN}18{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}"
+        18: f"{Fore.GREEN}18{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}",
+        19: f"{Fore.GREEN}19{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.automated_renewal')}",
     }
     
     # Automatically calculate the number of menu items in the left and right columns
@@ -688,6 +692,38 @@ def check_latest_version():
         print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.continue_anyway')}{Style.RESET_ALL}")
         return
 
+def get_downloads_folder():
+    return str(Path.home() / "Downloads")
+
+def cooldown_ok(cooldown_file, hours=24):
+    if not os.path.exists(cooldown_file):
+        return True
+    with open(cooldown_file, "r") as f:
+        last_time = float(f.read().strip())
+    return (time.time() - last_time) >= hours * 3600
+
+def update_cooldown(cooldown_file):
+    with open(cooldown_file, "w") as f:
+        f.write(str(time.time()))
+
+def write_credentials_to_downloads(email, password, domain):
+    downloads = get_downloads_folder()
+    out_file = os.path.join(downloads, "cursor_account.txt")
+    with open(out_file, "w") as f:
+        f.write(f"Email: {email}\nPassword: {password}\nTemp Mail Domain: {domain}\nRegistered At: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+def wait_for_internet(timeout=60, check_host="8.8.8.8", check_port=53):
+    """Wait for internet connection to be available, up to timeout seconds."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            socket.setdefaulttimeout(5)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((check_host, check_port))
+            return True
+        except Exception:
+            time.sleep(2)
+    return False
+
 def main():
     # Check for admin privileges if running as executable on Windows only
     if platform.system() == 'Windows' and is_frozen() and not is_admin():
@@ -708,11 +744,31 @@ def main():
 
     if config.getboolean('Utils', 'enabled_update_check'):
         check_latest_version()  # Add version check before showing menu
+    if len(sys.argv) > 1 and sys.argv[1] == "--auto-renewal":
+        print(f"Waiting 60 seconds after startup to ensure internet connection...")
+        time.sleep(60)
+        if not wait_for_internet():
+            print("No internet connection detected after 60 seconds. Exiting.")
+            return
+        cooldown_file = os.path.join(get_downloads_folder(), "last_automated_run.txt")
+        if cooldown_ok(cooldown_file):
+            import cursor_register_manual
+            # visible registration, not headless
+            result = cursor_register_manual.main(translator, use_priority_email_tab=True, return_creds=True)
+            if result and isinstance(result, tuple) and len(result) == 3:
+                email, password, domain = result
+                update_cooldown(cooldown_file)
+                write_credentials_to_downloads(email, password, domain)
+            else:
+                print("Registration failed or credentials not returned.")
+        else:
+            print("Automated registration cooldown not met. Exiting.")
+        return
     print_menu()
     
     while True:
         try:
-            choice_num = 18
+            choice_num = 19
             choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{choice_num}')}: {Style.RESET_ALL}")
 
             match choice:
@@ -726,7 +782,11 @@ def main():
                     print_menu()   
                 case "2":
                     import cursor_register_manual
-                    cursor_register_manual.main(translator, use_priority_email_tab=True)
+                    # visible registration, not headless
+                    result = cursor_register_manual.main(translator, use_priority_email_tab=True, return_creds=True)
+                    if result and isinstance(result, tuple) and len(result) == 3:
+                        email, password, domain = result
+                        write_credentials_to_downloads(email, password, domain)
                     print_menu()    
                 case "3":
                     print(f"\n{Fore.YELLOW}{translator.get('menu.coming_soon', fallback='Coming soon!')}{Style.RESET_ALL}")
@@ -791,6 +851,26 @@ def main():
                 case "18":
                     import manual_custom_auth
                     manual_custom_auth.main(translator)
+                    print_menu()
+                case "19":
+                    print(f"Waiting 60 seconds after startup to ensure internet connection...")
+                    time.sleep(60)
+                    if not wait_for_internet():
+                        print("No internet connection detected after 60 seconds. Exiting.")
+                        print_menu()
+                        continue
+                    cooldown_file = os.path.join(get_downloads_folder(), "last_automated_run.txt")
+                    if cooldown_ok(cooldown_file):
+                        import cursor_register_manual
+                        result = cursor_register_manual.main(translator, use_priority_email_tab=True, return_creds=True)
+                        if result and isinstance(result, tuple) and len(result) == 3:
+                            email, password, domain = result
+                            update_cooldown(cooldown_file)
+                            write_credentials_to_downloads(email, password, domain)
+                        else:
+                            print("Registration failed or credentials not returned.")
+                    else:
+                        print("Automated registration cooldown not met. Exiting.")
                     print_menu()
                 case _:
                     print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")

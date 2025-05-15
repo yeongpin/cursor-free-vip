@@ -283,25 +283,21 @@ class CursorRegistration:
         auth_manager = CursorAuth(translator=self.translator)
         return auth_manager.update_auth(email, access_token, refresh_token, auth_type)
 
-def main(translator=None, use_priority_email_tab=True):
+def main(translator=None, use_priority_email_tab=True, return_creds=False):
     """Main function to be called from main.py"""
     print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{EMOJI['START']} {translator.get('register.title')}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
-    registration = CursorRegistration(translator, use_priority_email_tab=use_priority_email_tab)
-    from new_signup import main as new_signup_main
-    registration.start = lambda: new_signup_main(
-        email=registration.email_address,
-        password=registration.password,
-        first_name=registration.first_name,
-        last_name=registration.last_name,
-        email_tab=registration.email_tab,
-        controller=registration,
-        translator=registration.translator
-    )
-    registration.start()
-    print(f"\n{Fore.CYAN}{'='*50}{Style.RESET_ALL}")
-    input(f"{EMOJI['INFO']} {translator.get('register.press_enter')}...")
+    registration = CursorRegistration(translator=translator, use_priority_email_tab=use_priority_email_tab)
+    result = registration.start()
+    if result:
+        # Extract credentials
+        email = getattr(registration, 'email', None)
+        password = getattr(registration, 'password', None)
+        domain = getattr(registration, 'domain', None)
+        if return_creds:
+            return (email, password, domain)
+    return None
 
 if __name__ == "__main__":
     from main import translator as main_translator

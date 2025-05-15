@@ -36,7 +36,8 @@
         "language_config_saved": "Taalconfiguratie met succes opgeslagen",
         "lang_invalid_choice": "Ongeldige keuze. Voer een van de volgende opties in: ({lang_choices}))",
         "manual_custom_auth": "Handmatige aangepaste auth",
-        "admin_required_continue": "Doorgaan zonder beheerdersrechten."
+        "admin_required_continue": "Doorgaan zonder beheerdersrechten.",
+        "automated_renewal": "Automatische verlenging (uitvoeren bij opstarten)"
     },
     "languages": {
         "ar": "Arabisch",

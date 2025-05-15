@@ -36,7 +36,8 @@
         "language_config_saved": "言語設定が正常に保存されました",
         "lang_invalid_choice": "無効な選択です。以下のオプションから選択してください: ({lang_choices})",
         "restore_machine_id": "バックアップからマシンIDを復元",
-        "manual_custom_auth": "手動カスタム認証"
+        "manual_custom_auth": "手動カスタム認証",
+        "automated_renewal": "自動更新（起動時に実行）"
     },
     "languages": {
         "ar": "アラビア語",

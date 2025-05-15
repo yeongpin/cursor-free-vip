@@ -36,7 +36,8 @@
         "restore_machine_id": "Makine Kimliğini Yedekten Geri Yükle",
         "language_config_saved": "Dil yapılandırması başarıyla kaydedildi",
         "lang_invalid_choice": "Geçersiz seçim. Lütfen aşağıdaki seçeneklerden birini girin: ({Lang_choices}))",
-        "manual_custom_auth": "Manuel Özel Auth"
+        "manual_custom_auth": "Manuel Özel Auth",
+        "automated_renewal": "Otomatik yenileme (başlangıçta çalıştır)"
     },
     "languages": {
         "ar": "Arapça",

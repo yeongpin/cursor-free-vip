@@ -39,7 +39,7 @@
         "manual_custom_auth": "Manual Custom Auth",
         "register_cursor_custom_email": "Register Cursor with Custom Email",
         "register_cursor_custom_email_headless": "Register Cursor with Custom Email - Headless",
-        "automated_renewal": "Automated Renewal (Run on Startup)"
+        "automated_renewal": "Automated Renewal on Start-up"
     },
     "languages": {
         "ar": "Arabic",

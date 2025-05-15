@@ -36,7 +36,8 @@
         "restore_machine_id": "Geräte-ID aus Backup wiederherstellen",
         "language_config_saved": "Sprachkonfiguration erfolgreich gespeichert",
         "lang_invalid_choice": "Ungültige Auswahl. Bitte geben Sie eine der folgenden Optionen ein: ({Lang_Choices})",
-        "manual_custom_auth": "Handbuch benutzerdefinierte Auth"
+        "manual_custom_auth": "Handbuch benutzerdefinierte Auth",
+        "automated_renewal": "Automatische Verlängerung (beim Start ausführen)"
     },
     "languages": {
         "ar": "Arabisch",

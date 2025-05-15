@@ -37,7 +37,8 @@
         "admin_required": "Изпълнявайки се като изпълними, администраторските привилегии са необходими.",
         "language_config_saved": "Езиковата конфигурация се запази успешно",
         "admin_required_continue": "Продължаване без привилегии на администратор.",
-        "manual_custom_auth": "Ръчен персонализиран Auth"
+        "manual_custom_auth": "Ръчен персонализиран Auth",
+        "automated_renewal": "Автоматично подновяване (стартиране при стартиране на системата)"
     },
     "languages": {
         "ar": "Арабски",
@@ -53,8 +54,8 @@
         "tr": "Turkish",
         "bg": "Bulgarian",
         "es": "Spanish",
-        "it": "Италиански",
-        "ja": "Японски"
+        "it": "Italian",
+        "ja": "Japanese"
     },
     "quit_cursor": {
         "start": "Започни излизането от Курсор",

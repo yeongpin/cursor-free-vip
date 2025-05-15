@@ -36,7 +36,8 @@
         "select_chrome_profile": "Seleccionar perfil de Chrome",
         "language_config_saved": "Configuración del idioma guardada correctamente",
         "lang_invalid_choice": "Elección no válida. Ingrese una de las siguientes opciones: ({Lang_Choices})",
-        "manual_custom_auth": "Autorización personalizada manual"
+        "manual_custom_auth": "Autorización personalizada manual",
+        "automated_renewal": "Renovación automática (ejecutar al iniciar)"
     },
     "languages": {
         "ar": "Árabe",
