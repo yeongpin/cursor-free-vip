@@ -247,7 +247,7 @@ by the user.
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yeongpin/cursor-free-vip&type=Date)](https://star-history.com/#yeongpin/cursor-free-vip&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=yeongpin/cursor-free-vip&type=Date)](https://www.star-history.com/#yeongpin/cursor-free-vip&Date)
 
 </div>
 
