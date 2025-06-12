@@ -152,38 +152,45 @@ function Install-CursorFreeVIP {
                 $start = $i * $partSize
                 $end = [math]::Min(($start + $partSize - 1), $fileSize - 1)
                 $tempFile = "$downloadPath.part$i"
+                $progressFile = "$downloadPath.part$i.progress"
                 $tempFiles += $tempFile
                 $rangeHeader = "bytes=$start-$end"
                 if ($useThreadJob) {
                     $jobs += Start-ThreadJob -ScriptBlock {
-                        param($url, $tempFile, $rangeHeader, $headers)
+                        param($url, $tempFile, $rangeHeader, $headers, $progressFile)
                         try {
                             Add-Type -AssemblyName System.Net.Http
                             $client = New-Object System.Net.Http.HttpClient
                             $client.DefaultRequestHeaders.Add('User-Agent', $headers['User-Agent'])
-                            # Parse rangeHeader like 'bytes=0-5497449'
                             if ($rangeHeader -match 'bytes=(\d+)-(\d+)') {
                                 $start = [int64]$matches[1]
                                 $end = [int64]$matches[2]
                                 $client.DefaultRequestHeaders.Range = New-Object System.Net.Http.Headers.RangeHeaderValue($start, $end)
                             }
-                            $response = $client.GetAsync($url).Result
+                            $response = $client.SendAsync((New-Object System.Net.Http.HttpRequestMessage('GET', $url)), [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
                             if ($response.IsSuccessStatusCode) {
-                                $bytes = $response.Content.ReadAsByteArrayAsync().Result
-                                [System.IO.File]::WriteAllBytes($tempFile, $bytes)
+                                $stream = $response.Content.ReadAsStreamAsync().Result
+                                $fs = [System.IO.File]::Open($tempFile, [System.IO.FileMode]::Create)
+                                $buffer = New-Object byte[] 65536
+                                $totalRead = 0
+                                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                                    $fs.Write($buffer, 0, $read)
+                                    $totalRead += $read
+                                    Set-Content -Path $progressFile -Value $totalRead
+                                }
+                                $fs.Close(); $stream.Close(); $client.Dispose()
                             } else {
                                 $errFile = "$tempFile.error"
                                 "HTTP $($response.StatusCode): $($response.ReasonPhrase)" | Out-File -FilePath $errFile
                             }
-                            $client.Dispose()
                         } catch {
                             $errFile = "$tempFile.error"
                             $_ | Out-File -FilePath $errFile
                         }
-                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers
+                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers, $progressFile
                 } else {
                     $jobs += Start-Job -ScriptBlock {
-                        param($url, $tempFile, $rangeHeader, $headers)
+                        param($url, $tempFile, $rangeHeader, $headers, $progressFile)
                         try {
                             Add-Type -AssemblyName System.Net.Http
                             $client = New-Object System.Net.Http.HttpClient
@@ -193,24 +200,62 @@ function Install-CursorFreeVIP {
                                 $end = [int64]$matches[2]
                                 $client.DefaultRequestHeaders.Range = New-Object System.Net.Http.Headers.RangeHeaderValue($start, $end)
                             }
-                            $response = $client.GetAsync($url).Result
+                            $response = $client.SendAsync((New-Object System.Net.Http.HttpRequestMessage('GET', $url)), [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
                             if ($response.IsSuccessStatusCode) {
-                                $bytes = $response.Content.ReadAsByteArrayAsync().Result
-                                [System.IO.File]::WriteAllBytes($tempFile, $bytes)
+                                $stream = $response.Content.ReadAsStreamAsync().Result
+                                $fs = [System.IO.File]::Open($tempFile, [System.IO.FileMode]::Create)
+                                $buffer = New-Object byte[] 65536
+                                $totalRead = 0
+                                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                                    $fs.Write($buffer, 0, $read)
+                                    $totalRead += $read
+                                    Set-Content -Path $progressFile -Value $totalRead
+                                }
+                                $fs.Close(); $stream.Close(); $client.Dispose()
                             } else {
                                 $errFile = "$tempFile.error"
                                 "HTTP $($response.StatusCode): $($response.ReasonPhrase)" | Out-File -FilePath $errFile
                             }
-                            $client.Dispose()
                         } catch {
                             $errFile = "$tempFile.error"
                             $_ | Out-File -FilePath $errFile
                         }
-                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers
+                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers, $progressFile
                 }
             }
             Write-Styled "Downloading in $numParts parts..." -Color $Theme.Primary -Prefix "Parallel"
-            # Wait for all jobs
+
+            # Show progress bars for all parts in real time
+            $allDone = $false
+            while (-not $allDone) {
+                $allDone = $true
+                for ($i = 0; $i -lt $numParts; $i++) {
+                    $progressFile = "$downloadPath.part$i.progress"
+                    $start = $i * $partSize
+                    $end = [math]::Min(($start + $partSize - 1), $fileSize - 1)
+                    $partTotal = $end - $start + 1
+                    $partRead = 0
+                    if (Test-Path $progressFile) {
+                        $partRead = [int64](Get-Content $progressFile -Raw)
+                        if ($partRead -lt $partTotal) { $allDone = $false }
+                    } else {
+                        $allDone = $false
+                    }
+                    $percent = [math]::Round(($partRead / $partTotal) * 100, 1)
+                    Write-Progress -Id ($i+1) -Activity "Downloading part $i" -Status "$percent% ($partRead / $partTotal bytes)" -PercentComplete $percent
+                }
+                Start-Sleep -Milliseconds 200
+                # Check if all jobs are done
+                if ($jobs | Where-Object { $_.State -ne 'Completed' }) { $allDone = $false }
+            }
+            # Remove progress bars
+            for ($i = 0; $i -lt $numParts; $i++) { Write-Progress -Id ($i+1) -Activity "Downloading part $i" -Completed }
+            # Clean up progress files
+            for ($i = 0; $i -lt $numParts; $i++) {
+                $progressFile = "$downloadPath.part$i.progress"
+                if (Test-Path $progressFile) { Remove-Item $progressFile -Force }
+            }
+            # Wait for all jobs to finish (in case any are still finalizing)
             $jobs | ForEach-Object { Wait-Job $_ }
             # Check for errors and missing part files
             $hasError = $false
