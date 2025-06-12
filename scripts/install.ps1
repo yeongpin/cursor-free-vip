@@ -124,7 +124,145 @@ function Install-CursorFreeVIP {
         }
         
         Write-Styled "No existing installation file found, starting download..." -Color $Theme.Primary -Prefix "Download"
-        
+
+        # Concurrent download variables
+        $numParts = 4
+        $url = $asset.browser_download_url
+        $tempFiles = @()
+        $jobs = @()
+        $headers = @{ "User-Agent" = "PowerShell Script" }
+
+        # Get file size
+        try {
+            $response = Invoke-WebRequest -Uri $url -Method Head -Headers $headers
+            $fileSize = [int64]$response.Headers["Content-Length"]
+        } catch {
+            Write-Styled "Failed to get file size for concurrent download. Falling back to single download." -Color $Theme.Warning -Prefix "Warning"
+            $fileSize = $null
+        }
+
+        if ($fileSize -and $fileSize -gt 0) {
+            Write-Styled "File size: $fileSize bytes" -Color $Theme.Info -Prefix "Info"
+            $partSize = [math]::Ceiling($fileSize / $numParts)
+            $useThreadJob = $false
+            if (Get-Command Start-ThreadJob -ErrorAction SilentlyContinue) {
+                $useThreadJob = $true
+            }
+            for ($i = 0; $i -lt $numParts; $i++) {
+                $start = $i * $partSize
+                $end = [math]::Min(($start + $partSize - 1), $fileSize - 1)
+                $tempFile = "$downloadPath.part$i"
+                $tempFiles += $tempFile
+                $rangeHeader = "bytes=$start-$end"
+                if ($useThreadJob) {
+                    $jobs += Start-ThreadJob -ScriptBlock {
+                        param($url, $tempFile, $rangeHeader, $headers)
+                        try {
+                            Add-Type -AssemblyName System.Net.Http
+                            $client = New-Object System.Net.Http.HttpClient
+                            $client.DefaultRequestHeaders.Add('User-Agent', $headers['User-Agent'])
+                            # Parse rangeHeader like 'bytes=0-5497449'
+                            if ($rangeHeader -match 'bytes=(\d+)-(\d+)') {
+                                $start = [int64]$matches[1]
+                                $end = [int64]$matches[2]
+                                $client.DefaultRequestHeaders.Range = New-Object System.Net.Http.Headers.RangeHeaderValue($start, $end)
+                            }
+                            $response = $client.GetAsync($url).Result
+                            if ($response.IsSuccessStatusCode) {
+                                $bytes = $response.Content.ReadAsByteArrayAsync().Result
+                                [System.IO.File]::WriteAllBytes($tempFile, $bytes)
+                            } else {
+                                $errFile = "$tempFile.error"
+                                "HTTP $($response.StatusCode): $($response.ReasonPhrase)" | Out-File -FilePath $errFile
+                            }
+                            $client.Dispose()
+                        } catch {
+                            $errFile = "$tempFile.error"
+                            $_ | Out-File -FilePath $errFile
+                        }
+                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers
+                } else {
+                    $jobs += Start-Job -ScriptBlock {
+                        param($url, $tempFile, $rangeHeader, $headers)
+                        try {
+                            Add-Type -AssemblyName System.Net.Http
+                            $client = New-Object System.Net.Http.HttpClient
+                            $client.DefaultRequestHeaders.Add('User-Agent', $headers['User-Agent'])
+                            if ($rangeHeader -match 'bytes=(\d+)-(\d+)') {
+                                $start = [int64]$matches[1]
+                                $end = [int64]$matches[2]
+                                $client.DefaultRequestHeaders.Range = New-Object System.Net.Http.Headers.RangeHeaderValue($start, $end)
+                            }
+                            $response = $client.GetAsync($url).Result
+                            if ($response.IsSuccessStatusCode) {
+                                $bytes = $response.Content.ReadAsByteArrayAsync().Result
+                                [System.IO.File]::WriteAllBytes($tempFile, $bytes)
+                            } else {
+                                $errFile = "$tempFile.error"
+                                "HTTP $($response.StatusCode): $($response.ReasonPhrase)" | Out-File -FilePath $errFile
+                            }
+                            $client.Dispose()
+                        } catch {
+                            $errFile = "$tempFile.error"
+                            $_ | Out-File -FilePath $errFile
+                        }
+                    } -ArgumentList $url, $tempFile, $rangeHeader, $headers
+                }
+            }
+            Write-Styled "Downloading in $numParts parts..." -Color $Theme.Primary -Prefix "Parallel"
+            # Wait for all jobs
+            $jobs | ForEach-Object { Wait-Job $_ }
+            # Check for errors and missing part files
+            $hasError = $false
+            for ($i = 0; $i -lt $numParts; $i++) {
+                $tempFile = "$downloadPath.part$i"
+                if (-not (Test-Path $tempFile)) {
+                    Write-Styled "Download part missing: $tempFile" -Color $Theme.Error -Prefix "Error"
+                    $errFile = "$tempFile.error"
+                    if (Test-Path $errFile) {
+                        $errContent = Get-Content $errFile -Raw
+                        Write-Styled "Job $i error file: $errContent" -Color $Theme.Error -Prefix "JobError"
+                        Remove-Item $errFile -Force
+                    }
+                    $job = $jobs[$i]
+                    if ($job) {
+                        $jobErr = Receive-Job $job -ErrorAction SilentlyContinue
+                        if ($jobErr) {
+                            Write-Styled "Job $i output: $jobErr" -Color $Theme.Error -Prefix "JobOutput"
+                        }
+                        $jobErrorRecord = $job.ChildJobs[0].JobStateInfo.Reason
+                        if ($jobErrorRecord) {
+                            Write-Styled "Job $i exception: $jobErrorRecord" -Color $Theme.Error -Prefix "JobException"
+                        }
+                    }
+                    $hasError = $true
+                }
+            }
+            if (-not $hasError) {
+                # Merge parts
+                Write-Styled "Merging parts..." -Color $Theme.Primary -Prefix "Merge"
+                $outStream = [System.IO.File]::Create($downloadPath)
+                foreach ($tempFile in $tempFiles) {
+                    $bytes = [System.IO.File]::ReadAllBytes($tempFile)
+                    $outStream.Write($bytes, 0, $bytes.Length)
+                    Remove-Item $tempFile -Force
+                }
+                $outStream.Close()
+                Write-Styled "Download completed!" -Color $Theme.Success -Prefix "Complete"
+                Write-Styled "File location: $downloadPath" -Color $Theme.Info -Prefix "Location"
+                Write-Styled "Starting program..." -Color $Theme.Primary -Prefix "Launch"
+                Start-Process $downloadPath
+                return
+            } else {
+                # Clean up any partial files
+                foreach ($tempFile in $tempFiles) {
+                    if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+                }
+                Write-Styled "Falling back to single download..." -Color $Theme.Warning -Prefix "Warning"
+            }
+        }
+
+        # Fallback: single download (original logic)
         # Create WebClient and add progress event
         $webClient = New-Object System.Net.WebClient
         $webClient.Headers.Add("User-Agent", "PowerShell Script")
