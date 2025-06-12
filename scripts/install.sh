@@ -82,9 +82,89 @@ detect_os() {
     fi
 }
 
+# Parallel download with progress bars
+parallel_download() {
+    local url="$1"
+    local output="$2"
+    local filesize="$3"
+    local num_parts=4
+    local part_size=$((filesize / num_parts))
+    local pids=()
+    local progress_files=()
+    local i start end partfile progressfile
+
+    for ((i=0; i<num_parts; i++)); do
+        start=$((i * part_size))
+        if [ $i -eq $((num_parts-1)) ]; then
+            end=$((filesize-1))
+        else
+            end=$(((i+1)*part_size-1))
+        fi
+        partfile="${output}.part${i}"
+        progressfile="${output}.part${i}.progress"
+        progress_files+=("$progressfile")
+        (
+            curl -L --range $start-$end -o "$partfile" "$url" 2> "$progressfile.log" &
+            pid=$!
+            while kill -0 $pid 2>/dev/null; do
+                if [ -f "$partfile" ]; then
+                    size=$(stat -c%s "$partfile" 2>/dev/null || stat -f%z "$partfile" 2>/dev/null)
+                    echo "$size" > "$progressfile"
+                fi
+                sleep 0.2
+            done
+            if [ -f "$partfile" ]; then
+                size=$(stat -c%s "$partfile" 2>/dev/null || stat -f%z "$partfile" 2>/dev/null)
+                echo "$size" > "$progressfile"
+            fi
+        ) &
+        pids+=("$!")
+    done
+
+    # Show progress bars
+    all_done=0
+    while [ $all_done -eq 0 ]; do
+        all_done=1
+        for ((i=0; i<num_parts; i++)); do
+            start=$((i * part_size))
+            if [ $i -eq $((num_parts-1)) ]; then
+                end=$((filesize-1))
+            else
+                end=$(((i+1)*part_size-1))
+            fi
+            part_total=$((end-start+1))
+            progressfile="${output}.part${i}.progress"
+            part_read=0
+            if [ -f "$progressfile" ]; then
+                part_read=$(cat "$progressfile" 2>/dev/null)
+                [ -z "$part_read" ] && part_read=0
+                if [ "$part_read" -lt "$part_total" ]; then
+                    all_done=0
+                fi
+            else
+                all_done=0
+            fi
+            percent=$((100 * part_read / part_total))
+            bar=$(printf '%-*s' $((percent/2)) | tr ' ' '#')
+            printf "\rPart %d: [%-50s] %3d%% (%d/%d bytes)\n" "$i" "$bar" "$percent" "$part_read" "$part_total"
+        done
+        sleep 0.2
+        # Move cursor up num_parts lines
+        printf '\033[%dA' "$num_parts"
+    done
+    # Move cursor down after progress
+    printf '\033[%dB' "$num_parts"
+    # Wait for all jobs
+    for pid in "${pids[@]}"; do wait $pid; done
+    # Clean up progress files
+    for pf in "${progress_files[@]}"; do rm -f "$pf"; done
+}
+
 # Install and download
 install_cursor_free_vip() {
     local downloads_dir=$(get_downloads_dir)
+    # Ensure downloads_dir exists
+    mkdir -p "$downloads_dir"
     local binary_name="CursorFreeVIP_${VERSION}_${OS}"
     local binary_path="${downloads_dir}/${binary_name}"
     local download_url="https://github.com/yeongpin/cursor-free-vip/releases/download/v${VERSION}/${binary_name}"
@@ -153,8 +233,24 @@ install_cursor_free_vip() {
     fi
     
     # Download file
-    if ! curl -L -o "${binary_path}" "$download_url"; then
-        echo -e "${RED}❌ Download failed${NC}"
+    if command -v curl >/dev/null 2>&1; then
+        # Get file size
+        file_size=$(curl -sI "$download_url" | grep -i Content-Length | awk '{print $2}' | tr -d '\r')
+        if [[ "$file_size" =~ ^[0-9]+$ && "$file_size" -gt 1048576 ]]; then
+            echo -e "${CYAN}ℹ️ Parallel downloading in 4 parts...${NC}"
+            parallel_download "$download_url" "$binary_path" "$file_size"
+            # Merge parts
+            cat "$binary_path.part"* > "$binary_path"
+            rm -f "$binary_path.part"*
+        else
+            echo -e "${YELLOW}⚠️ File is small, using single download...${NC}"
+            if ! curl -L -o "${binary_path}" "$download_url"; then
+                echo -e "${RED}❌ Download failed${NC}"
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${RED}❌ curl not found${NC}"
         exit 1
     fi
     
@@ -195,4 +291,4 @@ main() {
 }
 
 # Run main program
-main 
+main
