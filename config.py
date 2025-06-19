@@ -119,8 +119,8 @@ def setup_config(translator=None):
             appdata = os.getenv("APPDATA")
             localappdata = os.getenv("LOCALAPPDATA", "")
             default_config['WindowsPaths'] = {
-                'storage_path': os.path.join(appdata, "Cursor", "User", "globalStorage", "storage.json"),
-                'sqlite_path': os.path.join(appdata, "Cursor", "User", "globalStorage", "state.vscdb"),
+                'storage_path': os.path.join(appdata, "code", "User", "globalStorage", "storage.json"),
+                'sqlite_path': os.path.join(appdata, "code", "User", "globalStorage", "state.vscdb"),
                 'machine_id_path': os.path.join(appdata, "Cursor", "machineId"),
                 'cursor_path': os.path.join(localappdata, "Programs", "Cursor", "resources", "app"),
                 'updater_path': os.path.join(localappdata, "cursor-updater"),
