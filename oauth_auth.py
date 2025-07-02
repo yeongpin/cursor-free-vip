@@ -459,12 +459,13 @@ class OAuthHandler:
             co = ChromiumOptions()
             co.set_paths(browser_path=browser_path, user_data_path=user_data_dir)
             co.set_argument(f'--profile-directory={active_profile}')
-            
+
+            # 自动选择一个可用的端口，避免端口冲突
+            co.auto_port()
             # Basic options
             co.set_argument('--no-first-run')
             co.set_argument('--no-default-browser-check')
             co.set_argument('--disable-gpu')
-            co.set_argument('--remote-debugging-port=9222')  # 明确指定调试端口
             
             # Platform-specific options
             if sys.platform.startswith('linux'):
@@ -531,8 +532,8 @@ class OAuthHandler:
                 auth_btn = None
                 for selector in selectors:
                     try:
-                        auth_btn = self.browser.ele(f"xpath:{selector}", timeout=2)
-                        if auth_btn and auth_btn.is_displayed():
+                        auth_btn = self.browser.ele(f"xpath:{selector}", timeout=12)
+                        if auth_btn: #and auth_btn.is_displayed():
                             break
                     except:
                         continue
