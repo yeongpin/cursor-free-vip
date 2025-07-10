@@ -1,101 +1,103 @@
+import sys
+import platform
+import logging
 from colorama import Fore, Style, init
-from dotenv import load_dotenv
-import os
-import shutil
-import re
-
-# Get the current script directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Build the full path to the .env file
-env_path = os.path.join(current_dir, '.env')
-
-# Load environment variables, specifying the .env file path
-load_dotenv(env_path)
-# Get the version number, using the default value if not found
-version = os.getenv('VERSION', '1.0.0')
+from typing import Optional, Dict, List, Any, Tuple, Union
 
 # Initialize colorama
-init()
+init(autoreset=True)
 
-# get terminal width
-def get_terminal_width():
-    try:
-        columns, _ = shutil.get_terminal_size()/2
-        return columns
-    except:
-        return 80  # default width
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
 
-# center display text (not handling Chinese characters)
-def center_multiline_text(text, handle_chinese=False):
-    width = get_terminal_width()
-    lines = text.split('\n')
-    centered_lines = []
-    
-    for line in lines:
-        # calculate actual display width (remove ANSI color codes)
-        clean_line = line
-        for color in [Fore.CYAN, Fore.YELLOW, Fore.GREEN, Fore.RED, Fore.BLUE, Style.RESET_ALL]:
-            clean_line = clean_line.replace(color, '')
-        
-        # remove all ANSI escape sequences to get the actual length
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        clean_line = ansi_escape.sub('', clean_line)
-        
-        # calculate display width
-        if handle_chinese:
-            # consider Chinese characters occupying two positions
-            display_width = 0
-            for char in clean_line:
-                if ord(char) > 127:  # non-ASCII characters
-                    display_width += 2
-                else:
-                    display_width += 1
-        else:
-            # not handling Chinese characters
-            display_width = len(clean_line)
-        
-        # calculate the number of spaces to add
-        padding = max(0, (width - display_width) // 2)
-        centered_lines.append(' ' * padding + line)
-    
-    return '\n'.join(centered_lines)
+# Current version
+version = "1.9.9"
 
-# original LOGO text
-LOGO_TEXT = f"""{Fore.CYAN}
-   ██████╗██╗   ██╗██████╗ ███████╗ ██████╗ ██████╗      ██████╗ ██████╗  ██████╗   
-  ██╔════╝██║   ██║██╔══██╗██╔════╝██╔═══██╗██╔══██╗     ██╔══██╗██╔══██╗██╔═══██╗  
-  ██║     ██║   ██║██████╔╝███████╗██║   ██║██████╔╝     ██████╔╝██████╔╝██║   ██║  
-  ██║     ██║   ██║██╔══██╗╚════██║██║   ██║██╔══██╗     ██╔═══╝ ██╔══██╗██║   ██║  
-  ╚██████╗╚██████╔╝██║  ██║███████║╚██████╔╝██║  ██║     ██║     ██║  ██║╚██████╔╝  
-   ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝     ╚═╝     ╚═╝  ╚═╝ ╚═════╝  
+# ASCII art logo
+LOGO = f"""
+{Fore.CYAN}
+ ██████╗██╗   ██╗██████╗ ███████╗ ██████╗ ██████╗     ███████╗██████╗ ███████╗███████╗    ██╗   ██╗██╗██████╗ 
+██╔════╝██║   ██║██╔══██╗██╔════╝██╔═══██╗██╔══██╗    ██╔════╝██╔══██╗██╔════╝██╔════╝    ██║   ██║██║██╔══██╗
+██║     ██║   ██║██████╔╝███████╗██║   ██║██████╔╝    █████╗  ██████╔╝█████╗  █████╗      ██║   ██║██║██████╔╝
+██║     ██║   ██║██╔══██╗╚════██║██║   ██║██╔══██╗    ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝      ╚██╗ ██╔╝██║██╔═══╝ 
+╚██████╗╚██████╔╝██║  ██║███████║╚██████╔╝██║  ██║    ██║     ██║  ██║███████╗███████╗     ╚████╔╝ ██║██║     
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝    ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝      ╚═══╝  ╚═╝╚═╝     
 {Style.RESET_ALL}"""
 
-DESCRIPTION_TEXT = f"""{Fore.YELLOW}
-Pro Version Activator v{version}{Fore.GREEN}
-Author: Pin Studios (yeongpin)"""
+# Simplified logo for terminals with limited width
+SIMPLIFIED_LOGO = f"""
+{Fore.CYAN}
+ ██████╗██╗   ██╗██████╗ ███████╗ ██████╗ ██████╗ 
+██╔════╝██║   ██║██╔══██╗██╔════╝██╔═══██╗██╔══██╗
+██║     ██║   ██║██████╔╝███████╗██║   ██║██████╔╝
+██║     ██║   ██║██╔══██╗╚════██║██║   ██║██╔══██╗
+╚██████╗╚██████╔╝██║  ██║███████║╚██████╔╝██║  ██║
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝
+{Fore.GREEN}FREE VIP {version}{Style.RESET_ALL}
+{Style.RESET_ALL}"""
 
-CONTRIBUTORS_TEXT = f"""{Fore.BLUE}
-Contributors:
-BasaiCorp  aliensb  handwerk2016  Nigel1992
-UntaDotMy  RenjiYuusei  imbajin  ahmed98Osama
-bingoohuang  mALIk-sHAHId  MFaiqKhan  httpmerak
-muhammedfurkan plamkatawe Lucaszmv
+# Contributors info
+CURSOR_CONTRIBUTORS = f"""
+{Fore.CYAN}╔══════════════════════════════════════════════════════════════════╗
+║                        {Fore.YELLOW}CURSOR FREE VIP{Fore.CYAN}                          ║
+╠══════════════════════════════════════════════════════════════════╣
+║ {Fore.GREEN}Author:{Fore.WHITE}  yeongpin                                            {Fore.CYAN}║
+║ {Fore.GREEN}GitHub:{Fore.WHITE}  https://github.com/yeongpin/cursor-free-vip         {Fore.CYAN}║
+║ {Fore.GREEN}Version:{Fore.WHITE} {version}                                            {Fore.CYAN}║
+╚══════════════════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """
-OTHER_INFO_TEXT = f"""{Fore.YELLOW}
-Github: https://github.com/yeongpin/cursor-free-vip{Fore.RED}
-Press 4 to change language | 按下 4 键切换语言{Style.RESET_ALL}"""
 
-# center display LOGO and DESCRIPTION
-CURSOR_LOGO = center_multiline_text(LOGO_TEXT, handle_chinese=False)
-CURSOR_DESCRIPTION = center_multiline_text(DESCRIPTION_TEXT, handle_chinese=False)
-CURSOR_CONTRIBUTORS = center_multiline_text(CONTRIBUTORS_TEXT, handle_chinese=False)
-CURSOR_OTHER_INFO = center_multiline_text(OTHER_INFO_TEXT, handle_chinese=True)
+def get_terminal_width() -> int:
+    """Get terminal width with fallback for different platforms.
+    
+    Returns:
+        int: Terminal width in characters
+    """
+    try:
+        # Try to get terminal size using different methods based on platform
+        if platform.system() == "Windows":
+            from shutil import get_terminal_size
+            columns = get_terminal_size().columns
+        else:
+            import os
+            columns = os.get_terminal_size().columns
+        
+        return columns
+    except Exception as e:
+        logger.warning(f"Failed to get terminal width: {e}")
+        # Default width if detection fails
+        return 80
 
-def print_logo():
-    print(CURSOR_LOGO)
-    print(CURSOR_DESCRIPTION)
-    # print(CURSOR_CONTRIBUTORS)
-    print(CURSOR_OTHER_INFO)
+def print_logo() -> None:
+    """Print logo with version information based on terminal width."""
+    try:
+        # Get terminal width
+        terminal_width = get_terminal_width()
+        
+        # Choose logo based on terminal width
+        if terminal_width < 100:
+            logo = SIMPLIFIED_LOGO
+        else:
+            logo = LOGO
+            
+        # Print logo
+        print(logo)
+        
+        # Print version info
+        print(f"{Fore.GREEN}Version: {version}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'═' * min(80, terminal_width)}{Style.RESET_ALL}")
+        
+    except Exception as e:
+        logger.error(f"Error printing logo: {e}")
+        # Fallback to simplified version if any error occurs
+        print(SIMPLIFIED_LOGO)
+        print(f"{Fore.GREEN}Version: {version}{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     print_logo()
+    print(CURSOR_CONTRIBUTORS)

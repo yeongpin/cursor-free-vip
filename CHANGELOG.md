@@ -1,5 +1,26 @@
 # Change Log
 
+## v1.11.04
+1. Add: Enhanced Configuration Management System | 新增增强配置管理系统
+   - Multi-format support (INI, JSON, YAML) | 多格式支持 (INI, JSON, YAML)
+   - Automatic configuration validation | 自动配置验证
+   - Backup and restore functionality | 备份和恢复功能
+   - Platform-specific path management | 平台特定路径管理
+2. Add: Enhanced Error Handling System | 新增增强错误处理系统
+   - Automatic error categorization | 自动错误分类
+   - Severity-based logging | 基于严重性的日志记录
+   - Recovery strategies with retry logic | 带重试逻辑的恢复策略
+   - Error history tracking | 错误历史跟踪
+3. Add: Enhanced Utility System | 新增增强工具系统
+   - Advanced path management | 高级路径管理
+   - Multi-browser support with detection | 多浏览器支持与检测
+   - Process monitoring and management | 进程监控和管理
+   - System information gathering | 系统信息收集
+   - Network connectivity testing | 网络连接测试
+4. Improve: Code robustness and maintainability | 改进代码健壮性和可维护性
+5. Fix: Type safety issues and linter errors | 修复类型安全问题和linter错误
+6. Fix: Some Issues | 修复一些问题
+
 ## v1.11.03
 1. Update: TempMailPlus Cursor Email Detection Logic | 更新 TempMailPlus Cursor 邮件识别逻辑
 2. Fix: Windows User Directory Path | 修正 windows 环境下用户目录的获取方式
