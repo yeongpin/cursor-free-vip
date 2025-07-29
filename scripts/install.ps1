@@ -87,8 +87,19 @@ function Install-CursorFreeVIP {
         }
         
         # Check if Downloads folder already exists for the corresponding version
-        $shell = New-Object -ComObject Shell.Application
-        $downloadsPath = $shell.NameSpace('shell:Downloads').Self.Path
+        function Get-DownloadsPath {
+            try {
+                $shell = New-Object -ComObject Shell.Application
+                $downloads = $shell.NameSpace('shell:Downloads')
+                if ($downloads -ne $null) {
+                    return $downloads.Self.Path
+                }
+            } catch {}
+        
+            return "$env:USERPROFILE\Downloads"
+        }
+        
+        $downloadsPath = Get-DownloadsPath
         $savePath = Join-Path $downloadsPath "CursorFreeVIP_$latestVersion`_windows.exe"
         
         if (Test-Path $downloadPath) {
