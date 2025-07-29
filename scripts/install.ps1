@@ -87,8 +87,9 @@ function Install-CursorFreeVIP {
         }
         
         # Check if Downloads folder already exists for the corresponding version
-        $DownloadsPath = [Environment]::GetFolderPath('Downloads')
-        $downloadPath = Join-Path $DownloadsPath "CursorFreeVIP_${version}_windows.exe"
+        $shell = New-Object -ComObject Shell.Application
+        $downloadsPath = $shell.NameSpace('shell:Downloads').Self.Path
+        $savePath = Join-Path $downloadsPath "CursorFreeVIP_$latestVersion`_windows.exe"
         
         if (Test-Path $downloadPath) {
             Write-Styled "Found existing installation file" -Color $Theme.Success -Prefix "Found"
