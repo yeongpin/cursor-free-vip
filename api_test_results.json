@@ -1,0 +1,186 @@
+{
+  "https://www.cursor.com/user/me": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56188,
+    "is_json": false
+  },
+  "https://www.cursor.com/v1/user/me": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56201,
+    "is_json": false
+  },
+  "https://www.cursor.com/auth/me": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56188,
+    "is_json": false
+  },
+  "https://www.cursor.com/v1/auth/me": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56201,
+    "is_json": false
+  },
+  "https://www.cursor.com/billing/usage": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56206,
+    "is_json": false
+  },
+  "https://www.cursor.com/v1/billing/usage": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56219,
+    "is_json": false
+  },
+  "https://www.cursor.com/billing/subscription": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56227,
+    "is_json": false
+  },
+  "https://www.cursor.com/v1/billing/subscription": {
+    "status_code": 404,
+    "content_type": "text/html; charset=utf-8",
+    "content_length": 56240,
+    "is_json": false
+  },
+  "https://api.cursor.sh/user/me": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /user/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x10428bd90>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/v1/user/me": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /v1/user/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104946210>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/auth/me": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /auth/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104945bd0>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/v1/auth/me": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /v1/auth/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104946350>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/billing/usage": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /billing/usage (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104944910>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/v1/billing/usage": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /v1/billing/usage (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104944690>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/billing/subscription": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /billing/subscription (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104945090>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api.cursor.sh/v1/billing/subscription": {
+    "error": "HTTPSConnectionPool(host='api.cursor.sh', port=443): Max retries exceeded with url: /v1/billing/subscription (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104945810>: Failed to resolve 'api.cursor.sh' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://api2.cursor.sh/user/me": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 79,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/user/me not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/v1/user/me": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 82,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/v1/user/me not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/auth/me": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 79,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/auth/me not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/v1/auth/me": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 82,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/v1/auth/me not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/billing/usage": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 85,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/billing/usage not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/v1/billing/usage": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 88,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/v1/billing/usage not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/billing/subscription": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 92,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/billing/subscription not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://api2.cursor.sh/v1/billing/subscription": {
+    "status_code": 404,
+    "content_type": "application/json; charset=utf-8",
+    "content_length": 95,
+    "is_json": true,
+    "data": {
+      "message": "Route GET:/v1/billing/subscription not found",
+      "error": "Not Found",
+      "statusCode": 404
+    }
+  },
+  "https://platform.cursor.com/user/me": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /user/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x10428aad0>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/v1/user/me": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /v1/user/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104946850>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/auth/me": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /auth/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x10428aad0>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/v1/auth/me": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /v1/auth/me (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104946850>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/billing/usage": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /billing/usage (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104946490>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/v1/billing/usage": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /v1/billing/usage (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104944190>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/billing/subscription": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /billing/subscription (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104945590>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  },
+  "https://platform.cursor.com/v1/billing/subscription": {
+    "error": "HTTPSConnectionPool(host='platform.cursor.com', port=443): Max retries exceeded with url: /v1/billing/subscription (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x104945450>: Failed to resolve 'platform.cursor.com' ([Errno 8] nodename nor servname provided, or not known)\"))"
+  }
+}

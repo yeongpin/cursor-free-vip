@@ -3,17 +3,28 @@ import sys
 import json
 import requests
 import sqlite3
-from typing import Dict, Optional
 import platform
-from colorama import Fore, Style, init
 import logging
+import time
 import re
+from typing import Dict, Optional, Any, List, Tuple
+from pathlib import Path
+from colorama import Fore, Style, init
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
 
 # Initialize colorama
 init()
 
 # Setup logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('cursor_api.log')
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Define emoji constants
@@ -31,109 +42,453 @@ EMOJI = {
 }
 
 class Config:
-    """Config"""
+    """Configuration class"""
     NAME_LOWER = "cursor"
     NAME_CAPITALIZE = "Cursor"
     BASE_HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Cursor/0.10.0",
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
 
 class UsageManager:
-    """Usage Manager"""
+    """Manages Cursor API usage and subscription information"""
     
     @staticmethod
-    def get_proxy():
-        """get proxy"""
-        # from config import get_config
+    def get_proxy() -> Optional[Dict[str, str]]:
+        """Get proxy configuration from environment variables"""
         proxy = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
         if proxy:
             return {"http": proxy, "https": proxy}
         return None
-    
+        
     @staticmethod
     def get_usage(token: str) -> Optional[Dict]:
-        """get usage"""
-        url = f"https://www.{Config.NAME_LOWER}.com/api/usage"
-        headers = Config.BASE_HEADERS.copy()
-        headers.update({"Cookie": f"Workos{Config.NAME_CAPITALIZE}SessionToken=user_01OOOOOOOOOOOOOOOOOOOOOOOO%3A%3A{token}"})
-        try:
-            proxies = UsageManager.get_proxy()
-            response = requests.get(url, headers=headers, timeout=10, proxies=proxies)
-            response.raise_for_status()
-            data = response.json()
-            
-            # get Premium usage and limit
-            gpt4_data = data.get("gpt-4", {})
-            premium_usage = gpt4_data.get("numRequestsTotal", 0)
-            max_premium_usage = gpt4_data.get("maxRequestUsage", 999)
-            
-            # get Basic usage, but set limit to "No Limit"
-            gpt35_data = data.get("gpt-3.5-turbo", {})
-            basic_usage = gpt35_data.get("numRequestsTotal", 0)
-            
-            return {
-                'premium_usage': premium_usage, 
-                'max_premium_usage': max_premium_usage, 
-                'basic_usage': basic_usage, 
-                'max_basic_usage': "No Limit"  # set Basic limit to "No Limit"
+        """Get usage information from Cursor API"""
+        from config import API_BASE_URL, USAGE_ENDPOINT, ALTERNATE_ENDPOINTS, REQUEST_TIMEOUT, USER_AGENT
+        
+        # Start with the primary endpoint and add alternates
+        endpoints_to_try = [USAGE_ENDPOINT] + [e for e in ALTERNATE_ENDPOINTS if 'usage' in e or 'billing' in e]
+        
+        for endpoint in endpoints_to_try:
+            url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"  # Ensure clean URL
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json"
             }
-        except requests.RequestException as e:
-            # only log error
-            logger.error(f"Get usage info failed: {str(e)}")
+            
+            try:
+                proxies = UsageManager.get_proxy()
+                logger.info(f"Trying usage endpoint: {url}")
+                
+                response = requests.get(
+                    url, 
+                    headers=headers, 
+                    timeout=REQUEST_TIMEOUT, 
+                    proxies=proxies,
+                    allow_redirects=True
+                )
+                
+                # Handle redirects
+                if response.history:
+                    url = response.url
+                    response = requests.get(
+                        url,
+                        headers=headers,
+                        timeout=REQUEST_TIMEOUT,
+                        proxies=proxies,
+                        allow_redirects=False
+                    )
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                # Log successful response
+                logger.debug(f"API Response from {url}: {data}")
+                
+                # Handle different response formats
+                response_data = data.get('data', data)
+                
+                # Extract usage information with flexible field names
+                premium_usage = response_data.get('premium_usage') or response_data.get('gpt4_usage') or response_data.get('usage', {}).get('premium', 0)
+                max_premium_usage = response_data.get('max_premium_usage') or response_data.get('gpt4_limit') or response_data.get('limits', {}).get('premium', 999)
+                basic_usage = response_data.get('basic_usage') or response_data.get('gpt35_usage') or response_data.get('usage', {}).get('basic', 0)
+                
+                result = {
+                    'premium_usage': premium_usage,
+                    'max_premium_usage': max_premium_usage,
+                    'basic_usage': basic_usage,
+                    'max_basic_usage': response_data.get('max_basic_usage', "No Limit"),
+                    'endpoint_used': url
+                }
+                
+                logger.info(f"Successfully retrieved usage info from {url}")
+                return result
+                
+            except requests.RequestException as e:
+                if hasattr(e, 'response') and e.response is not None:
+                    if e.response.status_code == 404:
+                        logger.debug(f"Endpoint not found: {url}")
+                        continue  # Try next endpoint
+                    logger.error(f"Error from {url}: {e.response.status_code} - {e.response.text}")
+                else:
+                    logger.debug(f"Request failed for {url}: {str(e)}")
+                continue  # Try next endpoint
+            except Exception as e:
+                logger.error(f"Unexpected error with {url}: {str(e)}")
+                continue  # Try next endpoint
+        
+        logger.error("All endpoints failed for get_usage")
+        return None
+        
+    @staticmethod
+    def get_stripe_profile(token: str) -> Optional[Dict]:
+        """Get subscription information from Cursor API"""
+        from config import API_BASE_URL, SUBSCRIPTION_ENDPOINT, ALTERNATE_ENDPOINTS, REQUEST_TIMEOUT, USER_AGENT
+        
+        # Start with the primary endpoint and add alternates
+        endpoints_to_try = [SUBSCRIPTION_ENDPOINT] + \
+                         [e for e in ALTERNATE_ENDPOINTS if 'subscription' in e or 'billing' in e or 'user' in e or 'auth/me' in e]
+        
+        for endpoint in endpoints_to_try:
+            url = f"{API_BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"  # Ensure clean URL
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json"
+            }
+            
+            try:
+                proxies = UsageManager.get_proxy()
+                logger.info(f"Trying subscription endpoint: {url}")
+                
+                response = requests.get(
+                    url, 
+                    headers=headers, 
+                    timeout=REQUEST_TIMEOUT, 
+                    proxies=proxies,
+                    allow_redirects=True
+                )
+                
+                # Handle redirects
+                if response.history:
+                    url = response.url
+                    response = requests.get(
+                        url,
+                        headers=headers,
+                        timeout=REQUEST_TIMEOUT,
+                        proxies=proxies,
+                        allow_redirects=False
+                    )
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                # Log successful response
+                logger.debug(f"Subscription API Response from {url}: {data}")
+                
+                # Handle different response formats
+                response_data = data.get('data', data)
+                
+                # Extract subscription information with flexible field names
+                subscription = response_data.get('subscription')
+                if not subscription and isinstance(response_data, dict):
+                    # Try to construct subscription info from available fields
+                    subscription = {
+                        'status': 'active' if response_data.get('has_active_subscription') else 'inactive',
+                        'plan': response_data.get('plan', {}).get('name', 'Free')
+                    }
+                
+                result = {
+                    'subscription': subscription,
+                    'endpoint_used': url
+                }
+                
+                logger.info(f"Successfully retrieved subscription info from {url}")
+                return result
+                
+            except requests.RequestException as e:
+                if hasattr(e, 'response') and e.response is not None:
+                    if e.response.status_code == 404:
+                        logger.debug(f"Endpoint not found: {url}")
+                        continue  # Try next endpoint
+                    logger.error(f"Error from {url}: {e.response.status_code} - {e.response.text}")
+                else:
+                    logger.debug(f"Request failed for {url}: {str(e)}")
+                continue  # Try next endpoint
+            except Exception as e:
+                logger.error(f"Unexpected error with {url}: {str(e)}")
+                continue  # Try next endpoint
+        
+        logger.error("All endpoints failed for get_stripe_profile")
+        return None
+        
+    @staticmethod
+    def test_api_endpoints(token: str) -> Dict[str, Any]:
+        """Test various API endpoints to find working ones"""
+        import requests
+        from urllib.parse import urljoin
+        
+        base_urls = [
+            "https://www.cursor.com/api",
+            "https://api.cursor.sh",
+            "https://api2.cursor.sh",
+            "https://platform.cursor.com/api",
+        ]
+        
+        endpoints = [
+            "/user/me",
+            "/v1/user/me",
+            "/auth/me",
+            "/v1/auth/me",
+            "/billing/usage",
+            "/v1/billing/usage",
+            "/billing/subscription",
+            "/v1/billing/subscription",
+        ]
+        
+        results = {}
+        
+        for base_url in base_urls:
+            for endpoint in endpoints:
+                url = urljoin(base_url, endpoint)
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Cursor/0.10.0",
+                    "Accept": "application/json"
+                }
+                
+                try:
+                    response = requests.get(
+                        url, 
+                        headers=headers, 
+                        timeout=10,
+                        allow_redirects=True
+                    )
+                    
+                    # Store the result
+                    results[url] = {
+                        'status_code': response.status_code,
+                        'content_type': response.headers.get('content-type'),
+                        'content_length': len(response.content) if response.content else 0,
+                        'is_json': 'application/json' in response.headers.get('content-type', '').lower()
+                    }
+                    
+                    # If we got JSON, include a sample of the response
+                    if results[url]['is_json'] and response.content:
+                        try:
+                            json_data = response.json()
+                            results[url]['data'] = json_data
+                        except:
+                            results[url]['data'] = "Could not parse JSON"
+                    
+                except Exception as e:
+                    results[url] = {
+                        'error': str(e)
+                    }
+                
+                # Be nice to the API
+                import time
+                time.sleep(0.5)
+        
+        # Save results to a file
+        import json
+        with open('api_test_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+            
+        return results
+
+    @staticmethod
+    def check_local_storage():
+        """Check local storage for API-related information"""
+        import json
+        import os
+        import platform
+        from pathlib import Path
+
+        # Get the user's home directory
+        home = str(Path.home())
+        
+        # Determine the Cursor storage location based on the OS
+        if platform.system() == 'Darwin':  # macOS
+            storage_path = os.path.join(home, 'Library', 'Application Support', 'Cursor')
+        elif platform.system() == 'Windows':
+            storage_path = os.path.join(os.getenv('APPDATA', ''), 'Cursor')
+        else:  # Linux
+            storage_path = os.path.join(home, '.config', 'Cursor')
+        
+        # Check if the storage directory exists
+        if not os.path.exists(storage_path):
+            logger.warning(f"Cursor storage path not found: {storage_path}")
             return None
-        except Exception as e:
-            # catch all other exceptions
-            logger.error(f"Get usage info failed: {str(e)}")
-            return None
+        
+        # Look for storage.json or similar files
+        storage_files = [
+            'storage.json',
+            'Local Storage/leveldb',
+            'Local Storage/leveldb-v1',
+            'Local Storage/leveldb-v2',
+            'Local Storage/leveldb-v3',
+            'Local Storage/leveldb-v4',
+            'Local Storage/leveldb-v5',
+            'Local Storage/leveldb-v6',
+            'Local Storage/leveldb-v7',
+            'Local Storage/leveldb-v8',
+            'Local Storage/leveldb-v9',
+            'Local Storage/leveldb-v10'
+        ]
+        
+        found_data = {}
+        
+        for file_name in storage_files:
+            file_path = os.path.join(storage_path, file_name)
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        # Try to parse as JSON if it's a JSON file
+                        if file_name.endswith('.json'):
+                            try:
+                                data = json.loads(content)
+                                if data:  # Only add non-empty data
+                                    found_data[file_name] = data
+                            except json.JSONDecodeError:
+                                # If not valid JSON, add as text
+                                found_data[file_name] = content[:1000] + '...'  # Limit size
+                        else:
+                            # For non-JSON files, just add a portion of the content
+                            found_data[file_name] = content[:1000] + '...'  # Limit size
+                except Exception as e:
+                    logger.warning(f"Error reading {file_path}: {str(e)}")
+        
+        return found_data
 
     @staticmethod
     def get_stripe_profile(token: str) -> Optional[Dict]:
-        """get user subscription info"""
-        url = f"https://api2.{Config.NAME_LOWER}.sh/auth/full_stripe_profile"
-        headers = Config.BASE_HEADERS.copy()
-        headers.update({"Authorization": f"Bearer {token}"})
-        try:
-            proxies = UsageManager.get_proxy()
-            response = requests.get(url, headers=headers, timeout=10, proxies=proxies)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            logger.error(f"Get subscription info failed: {str(e)}")
-            return None
-
-def get_token_from_config():
-    """get path info from config"""
-    try:
-        from config import get_config
-        config = get_config()
-        if not config:
-            return None
+        """get stripe profile information"""
+        from config import API_BASE_URL, SUBSCRIPTION_ENDPOINT, ALTERNATE_ENDPOINTS, REQUEST_TIMEOUT, USER_AGENT
+        
+        # Start with the primary endpoint
+        endpoints_to_try = [SUBSCRIPTION_ENDPOINT] + \
+                         [e for e in ALTERNATE_ENDPOINTS if 'subscription' in e or 'billing' in e or 'user' in e or 'auth/me' in e]
+        
+        for endpoint in endpoints_to_try:
+            url = f"{API_BASE_URL}{endpoint}"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json"
+            }
             
-        system = platform.system()
-        if system == "Windows" and config.has_section('WindowsPaths'):
-            return {
-                'storage_path': config.get('WindowsPaths', 'storage_path'),
-                'sqlite_path': config.get('WindowsPaths', 'sqlite_path'),
-                'session_path': os.path.join(os.getenv("APPDATA"), "Cursor", "Session Storage")
-            }
-        elif system == "Darwin" and config.has_section('MacPaths'):  # macOS
-            return {
-                'storage_path': config.get('MacPaths', 'storage_path'),
-                'sqlite_path': config.get('MacPaths', 'sqlite_path'),
-                'session_path': os.path.expanduser("~/Library/Application Support/Cursor/Session Storage")
-            }
-        elif system == "Linux" and config.has_section('LinuxPaths'):
-            return {
-                'storage_path': config.get('LinuxPaths', 'storage_path'),
-                'sqlite_path': config.get('LinuxPaths', 'sqlite_path'),
-                'session_path': os.path.expanduser("~/.config/Cursor/Session Storage")
-            }
-    except Exception as e:
-        logger.error(f"Get config path failed: {str(e)}")
-    
-    return None
+            try:
+                response = requests.get(
+                    url, 
+                    headers=headers, 
+                    timeout=REQUEST_TIMEOUT, 
+                    proxies=None,
+                    allow_redirects=True
+                )
+                
+                # If we get redirected, update the URL and try again
+                if response.history:
+                    url = response.url
+                    response = requests.get(
+                        url,
+                        headers=headers,
+                        timeout=REQUEST_TIMEOUT,
+                        proxies=None,
+                        allow_redirects=False
+                    )
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                # Debug: Print the API response
+                logger.debug(f"API Response from {url}: {data}")
+                
+                # Try to extract subscription information with different response formats
+                response_data = data.get('data', data)  # Handle both wrapped and unwrapped responses
+                
+                # Try different possible field names for subscription data
+                subscription = response_data.get('subscription') or response_data.get('subscription', {}).get('data')
+                
+                result = {
+                    'subscription': subscription,
+                    'endpoint_used': url
+                }
+                
+                logger.info(f"Successfully retrieved subscription info from {url}")
+                return result
+                
+            except requests.RequestException as e:
+                if hasattr(e, 'response') and e.response is not None:
+                    if e.response.status_code == 404:
+                        logger.debug(f"Endpoint not found: {url}")
+                        continue  # Try next endpoint
+                    logger.error(f"Error from {url}: {e.response.status_code} - {e.response.text}")
+                else:
+                    logger.debug(f"Request failed for {url}: {str(e)}")
+                continue  # Try next endpoint
+            except Exception as e:
+                logger.error(f"Unexpected error with {url}: {str(e)}")
+                continue  # Try next endpoint
+        
+        logger.error("All endpoints failed for get_stripe_profile")
+        return None
+    def get_token_from_config():
+        """get path from config"""
+        import configparser
+        import os
+        import platform
+        from pathlib import Path
+
+        try:
+            # Get the user's home directory
+            home = str(Path.home())
+            
+            # Determine the config file location based on the OS
+            if platform.system() == 'Darwin':  # macOS
+                config_path = os.path.join(home, 'Library', 'Preferences', 'cursor.ini')
+            elif platform.system() == 'Windows':
+                config_path = os.path.join(os.getenv('APPDATA', ''), 'cursor', 'cursor.ini')
+            else:  # Linux
+                config_path = os.path.join(home, '.config', 'cursor', 'cursor.ini')
+            
+            # Check if the config file exists
+            if not os.path.exists(config_path):
+                logger.warning(f"Config file not found: {config_path}")
+                return None
+            
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            
+            system = platform.system()
+            if system == "Windows" and config.has_section('WindowsPaths'):
+                return {
+                    'storage_path': config.get('WindowsPaths', 'storage_path'),
+                    'sqlite_path': config.get('WindowsPaths', 'sqlite_path'),
+                    'session_path': os.path.join(os.getenv("APPDATA"), "Cursor", "Session Storage")
+                }
+            elif system == "Darwin" and config.has_section('MacPaths'):  # macOS
+                return {
+                    'storage_path': config.get('MacPaths', 'storage_path'),
+                    'sqlite_path': config.get('MacPaths', 'sqlite_path'),
+                    'session_path': os.path.expanduser("~/Library/Application Support/Cursor/Session Storage")
+                }
+            elif system == "Linux" and config.has_section('LinuxPaths'):
+                return {
+                    'storage_path': config.get('LinuxPaths', 'storage_path'),
+                    'sqlite_path': config.get('LinuxPaths', 'sqlite_path'),
+                    'session_path': os.path.expanduser("~/.config/Cursor/Session Storage")
+                }
+        except Exception as e:
+            logger.error(f"Get config path failed: {str(e)}")
+        
+        return None
 
 def get_token_from_storage(storage_path):
     """get token from storage.json"""
@@ -348,11 +703,32 @@ def display_account_info(translator=None):
     print(f"{Fore.CYAN}{EMOJI['USER']} {translator.get('account_info.title') if translator else 'Cursor Account Information'}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
     
+    # First, check local storage for any API-related information
+    print(f"{Fore.YELLOW}Checking local storage for API information...{Style.RESET_ALL}")
+    storage_data = UsageManager.check_local_storage()
+    
+    if storage_data:
+        print(f"{Fore.GREEN}Found local storage data. Analyzing...{Style.RESET_ALL}")
+        # Save the storage data to a file for debugging
+        import json
+        with open('cursor_storage_debug.json', 'w') as f:
+            json.dump(storage_data, f, indent=2)
+        print(f"{Fore.GREEN}Debug information saved to cursor_storage_debug.json{Style.RESET_ALL}")
+    
     # get token
     token = get_token()
     if not token:
         print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('account_info.token_not_found') if translator else 'Token not found. Please login to Cursor first.'}{Style.RESET_ALL}")
         return
+    
+    # Print token info for debugging (first 10 and last 10 characters)
+    token_display = f"{token[:10]}...{token[-10:]}" if token and len(token) > 20 else token
+    print(f"{Fore.GREEN}Token found: {token_display}{Style.RESET_ALL}")
+    
+    # Test API endpoints
+    print(f"{Fore.YELLOW}Testing API endpoints...{Style.RESET_ALL}")
+    api_results = UsageManager.test_api_endpoints(token)
+    print(f"{Fore.GREEN}API endpoint testing complete. Results saved to api_test_results.json{Style.RESET_ALL}")
     
     # get path info
     paths = get_token_from_config()
@@ -368,10 +744,16 @@ def display_account_info(translator=None):
         email = get_email_from_sqlite(paths['sqlite_path'])
     
     # get subscription info
+    print(f"{Fore.YELLOW}Fetching subscription information...{Style.RESET_ALL}")
     try:
         subscription_info = UsageManager.get_stripe_profile(token)
+        if subscription_info:
+            print(f"{Fore.GREEN}Subscription information retrieved successfully{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}No subscription information found{Style.RESET_ALL}")
     except Exception as e:
         logger.error(f"Get subscription info failed: {str(e)}")
+        print(f"{Fore.RED}Failed to get subscription info: {str(e)}{Style.RESET_ALL}")
         subscription_info = None
     
     # if not found in storage and sqlite, try from subscription info
@@ -381,10 +763,16 @@ def display_account_info(translator=None):
             email = subscription_info['customer']['email']
     
     # get usage info - silently handle errors
+    print(f"{Fore.YELLOW}Fetching usage information...{Style.RESET_ALL}")
     try:
         usage_info = UsageManager.get_usage(token)
+        if usage_info:
+            print(f"{Fore.GREEN}Usage information retrieved successfully{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}No usage information found{Style.RESET_ALL}")
     except Exception as e:
         logger.error(f"Get usage info failed: {str(e)}")
+        print(f"{Fore.RED}Failed to get usage info: {str(e)}{Style.RESET_ALL}")
         usage_info = None
     
     # Prepare left and right info
@@ -397,7 +785,12 @@ def display_account_info(translator=None):
     else:
         left_info.append(f"{Fore.YELLOW}{EMOJI['WARNING']} {translator.get('account_info.email_not_found') if translator else 'Email not found'}{Style.RESET_ALL}")
     
-    # Add an empty line
+    # Add token info for debugging
+    left_info.append(f"{Fore.CYAN}Token: {token_display}{Style.RESET_ALL}")
+    
+    # Add storage info if available
+    if storage_data:
+        left_info.append(f"{Fore.GREEN}Found {len(storage_data)} storage items{Style.RESET_ALL}")
     # left_info.append("")
     
     # Show subscription type

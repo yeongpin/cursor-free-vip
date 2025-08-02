@@ -18,6 +18,35 @@ EMOJI = {
     "SETTINGS": "⚙️"
 }
 
+# API Configuration
+API_BASE_URL = "https://api2.cursor.sh"  # Confirmed working base URL
+AUTH_HEADER = "Authorization"
+
+# API Endpoints - we'll try different variations
+USAGE_ENDPOINT = "/v1/usage"
+SUBSCRIPTION_ENDPOINT = "/v1/subscription"
+AUTH_ENDPOINT = "/v1/auth/refresh"
+
+# Additional endpoints to try if the primary ones fail
+ALTERNATE_ENDPOINTS = [
+    "/api/usage",
+    "/api/subscription",
+    "/api/v1/usage",
+    "/api/v1/subscription",
+    "/billing/usage",
+    "/billing/subscription",
+    "/user/me",
+    "/v1/user/me",
+    "/auth/me",
+    "/v1/auth/me"
+]
+
+# Request timeout in seconds
+REQUEST_TIMEOUT = 15
+
+# User agent to mimic a browser
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Cursor/0.10.0"
+
 # global config cache
 _config_cache = None
 
