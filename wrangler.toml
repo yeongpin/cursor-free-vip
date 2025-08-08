@@ -1,6 +1,5 @@
 name = "cursor-free-vip-pages"
 compatibility_date = "2025-01-25"
 
-[pages]
+# Cloudflare Pages (Beta) config expects this at top-level
 pages_build_output_dir = "web"
-functions = "web/functions"
