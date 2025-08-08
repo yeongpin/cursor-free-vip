@@ -1,0 +1,6 @@
+name = "cursor-free-vip-pages"
+compatibility_date = "2025-01-25"
+
+[pages]
+pages_build_output_dir = "web"
+functions = "web/functions"

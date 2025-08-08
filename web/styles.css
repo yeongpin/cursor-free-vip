@@ -1,0 +1,64 @@
+:root{--bg:#0b0f14;--bg-alt:#0e141b;--text:#e6edf3;--muted:#9fb1c3;--brand:#5b9cff;--surface:#121922;--card:#162130;--ring:rgba(91,156,255,.4)}*{box-sizing:border-box}html{color-scheme:dark light}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}a{color:inherit;text-decoration:none}a:hover{opacity:.9;text-decoration:underline .08em}img{max-width:100%;display:block}
+
+.container{width:min(1100px,100% - 2rem);margin-inline:auto}
+
+/* Header */
+.site-header{position:sticky;top:0;background:linear-gradient(180deg,var(--bg),transparent);backdrop-filter:saturate(120%) blur(6px);border-bottom:1px solid rgba(255,255,255,.06);z-index:20}
+.header-inner{display:flex;align-items:center;justify-content:space-between;min-height:64px;gap:1rem}
+.brand{display:flex;align-items:center;gap:.75rem}
+.logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#2a3b54,var(--brand));display:grid;place-items:center;color:#fff;font-weight:700}
+.brand-name{font-weight:700;letter-spacing:.2px}
+.site-nav{display:flex;gap:1rem}
+.nav-toggle{display:none;background:transparent;border:0;color:var(--text);font-size:1.25rem}
+
+/* Hero */
+.hero{padding:clamp(2rem,6vw,5rem) 0}
+.hero-inner{display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(1rem,4vw,2rem);align-items:center}
+.hero h1{font-size:clamp(1.75rem,2.5vw+1rem,3rem);line-height:1.15;margin:0 0 .5rem}
+.hero p{color:var(--muted);margin:0 0 1.25rem}
+.cta-row{display:flex;gap:.75rem;flex-wrap:wrap}
+.button{display:inline-flex;align-items:center;justify-content:center;padding:.7rem 1rem;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:0 0 0 0 var(--ring);transition:box-shadow .2s ease, transform .06s ease}
+.button:hover{box-shadow:0 0 0 .2rem var(--ring)}
+.button:active{transform:translateY(1px)}
+.button.primary{background:linear-gradient(135deg,var(--brand),#7cc0ff);color:#0b0f14;border-color:transparent}
+
+.hero-card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:clamp(.75rem,2vw,1rem)}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem}
+.card{aspect-ratio:16/10;border-radius:12px;background:linear-gradient(135deg,var(--card),#0f1622);border:1px solid rgba(255,255,255,.06)}
+
+/* Sections */
+.section{padding:clamp(2rem,5vw,4rem) 0}
+.section.alt{background:var(--bg-alt)}
+.section h2{font-size:clamp(1.25rem,1.2vw+1rem,2rem);margin:0 0 1rem}
+.features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.75rem,2.5vw,1.25rem)}
+.feature{padding:1rem;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0))}
+.feature h3{margin-top:0;margin-bottom:.25rem}
+.feature p{color:var(--muted);margin:0}
+
+/* Tabs */
+.tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.tab{padding:.5rem .75rem;background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:999px;color:var(--text)}
+.tab.active{outline:2px solid var(--ring)}
+.tab-panels pre{margin:0;border-radius:12px;padding:1rem;background:#0a0f16;border:1px solid rgba(255,255,255,.08);overflow:auto}
+.note{margin-top:1rem;color:var(--muted)}
+.tab-panels .panel{display:none}
+.tab-panels .panel.active{display:block}
+
+/* Footer */
+.site-footer{border-top:1px solid rgba(255,255,255,.06);padding:1rem 0;background:linear-gradient(0deg,var(--bg),transparent)}
+.footer-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem}
+.footer-links{display:flex;gap:1rem}
+
+/* Small screens */
+@media (max-width: 900px){
+  .hero-inner{grid-template-columns:1fr}
+}
+@media (max-width: 720px){
+  .site-nav{display:none;flex-direction:column;position:absolute;right:.5rem;top:60px;background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:.5rem;min-width:200px}
+  .site-nav.open{display:flex}
+  .nav-toggle{display:inline-block}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width: 460px){
+  .features-grid{grid-template-columns:1fr}
+}
