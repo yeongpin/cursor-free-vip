@@ -86,6 +86,8 @@ Install via [AUR](https://aur.archlinux.org/packages/cursor-free-vip-git)
 yay -S cursor-free-vip-git
 ```
 
+Note: Arch Linux compatibility has been improved to address previous issues running on Arch-based systems. (TR: Arch Linux üzerinde önce düzgün çalışmayan kısımlar düzeltildi; Arch desteği eklendi/iyileştirildi.)
+
 ### **Windows**
 
 ```powershell
