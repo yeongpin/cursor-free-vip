@@ -230,7 +230,8 @@ class OAuthHandler:
             elif "Chrome failed to start" in str(e):
                 print(f"{Fore.YELLOW}{EMOJI['INFO']} {self.translator.get('oauth.make_sure_chrome_chromium_is_properly_installed') if self.translator else 'Make sure Chrome/Chromium is properly installed'}{Style.RESET_ALL}")
                 if platform_name == 'linux':
-                    print(f"{Fore.YELLOW}{EMOJI['INFO']} {self.translator.get('oauth.try_install_chromium') if self.translator else 'Try: sudo apt install chromium-browser'}{Style.RESET_ALL}")
+                    # Show distro-agnostic hint with Arch example
+                    print(f"{Fore.YELLOW}{EMOJI['INFO']} {'Try installing a Chromium-based browser (e.g., on Arch: sudo pacman -S chromium)'}{Style.RESET_ALL}")
             return False
 
     def _kill_browser_processes(self):

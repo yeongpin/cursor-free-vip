@@ -42,7 +42,18 @@ def get_default_chrome_driver_path():
     elif sys.platform == "darwin":
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), "drivers", "chromedriver")
     else:
-        return "/usr/local/bin/chromedriver"
+        try:
+            import shutil
+            found = shutil.which("chromedriver")
+            if found:
+                return found
+        except Exception:
+            pass
+        # Common Linux locations (Arch: /usr/bin/chromedriver)
+        for path in ["/usr/bin/chromedriver", "/usr/local/bin/chromedriver"]:
+            if os.path.exists(path):
+                return path
+        return "/usr/bin/chromedriver"
 
 def get_default_edge_driver_path():
     """Get default Edge driver path"""
@@ -51,7 +62,17 @@ def get_default_edge_driver_path():
     elif sys.platform == "darwin":
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), "drivers", "msedgedriver")
     else:
-        return "/usr/local/bin/msedgedriver"
+        try:
+            import shutil
+            found = shutil.which("msedgedriver")
+            if found:
+                return found
+        except Exception:
+            pass
+        for path in ["/usr/bin/msedgedriver", "/usr/local/bin/msedgedriver"]:
+            if os.path.exists(path):
+                return path
+        return "/usr/bin/msedgedriver"
         
 def get_default_firefox_driver_path():
     """Get default Firefox driver path"""
@@ -60,7 +81,17 @@ def get_default_firefox_driver_path():
     elif sys.platform == "darwin":
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), "drivers", "geckodriver")
     else:
-        return "/usr/local/bin/geckodriver"
+        try:
+            import shutil
+            found = shutil.which("geckodriver")
+            if found:
+                return found
+        except Exception:
+            pass
+        for path in ["/usr/bin/geckodriver", "/usr/local/bin/geckodriver"]:
+            if os.path.exists(path):
+                return path
+        return "/usr/bin/geckodriver"
 
 def get_default_brave_driver_path():
     """Get default Brave driver path (uses Chrome driver)"""
@@ -139,17 +170,21 @@ def get_default_browser_path(browser_type='chrome'):
         
     else:  # Linux
         if browser_type == 'chrome':
-            # 尝试多种可能的名称
-            chrome_names = ["google-chrome", "chrome", "chromium", "chromium-browser"]
+            # Try common Chromium/Chrome names (Arch prefers chromium, google-chrome-stable from AUR)
+            chrome_names = ["google-chrome-stable", "google-chrome", "chrome", "chromium", "chromium-browser"]
             for name in chrome_names:
                 try:
                     import shutil
                     path = shutil.which(name)
                     if path:
                         return path
-                except:
+                except Exception:
                     pass
-            return "/usr/bin/google-chrome"
+            # Fallbacks
+            for path in ["/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/google-chrome"]:
+                if os.path.exists(path):
+                    return path
+            return "/usr/bin/chromium"
         elif browser_type == 'edge':
             return "/usr/bin/microsoft-edge"
         elif browser_type == 'firefox':

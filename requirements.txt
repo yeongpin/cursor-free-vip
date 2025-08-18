@@ -5,7 +5,7 @@ requests
 psutil>=5.8.0
 pywin32; platform_system == "Windows"
 pyinstaller 
-DrissionPage>=4.0.0
+DrissionPage>=4.1.0
 selenium
 webdriver_manager
 arabic-reshaper
