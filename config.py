@@ -170,6 +170,10 @@ def setup_config(translator=None):
             possible_paths = [
                 os.path.join(config_base, "Cursor"),
                 os.path.join(config_base, "cursor"),
+                # Arch Linux typical system install locations
+                "/opt/Cursor",
+                "/usr/share/cursor",
+                "/usr/lib/cursor",
                 os.path.join(root_home, ".config", "Cursor") if root_home else None,
                 os.path.join(root_home, ".config", "cursor") if root_home else None
             ]
@@ -186,7 +190,16 @@ def setup_config(translator=None):
                 print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('config.please_make_sure_cursor_is_installed_and_has_been_run_at_least_once') if translator else 'Please make sure Cursor is installed and has been run at least once'}{Style.RESET_ALL}")
             
             # Define Linux paths using the found cursor directory
-            storage_path = os.path.abspath(os.path.join(cursor_dir, "User/globalStorage/storage.json")) if cursor_dir else ""
+            storage_path_candidates = []
+            if cursor_dir:
+                storage_path_candidates.extend([
+                    os.path.abspath(os.path.join(cursor_dir, "User/globalStorage/storage.json")),
+                    os.path.abspath(os.path.join(actual_home, ".config/cursor/User/globalStorage/storage.json"))
+                ])
+            else:
+                storage_path_candidates.append(os.path.abspath(os.path.join(actual_home, ".config/cursor/User/globalStorage/storage.json")))
+
+            storage_path = next((p for p in storage_path_candidates if os.path.exists(p)), storage_path_candidates[0] if storage_path_candidates else "")
             storage_dir = os.path.dirname(storage_path) if storage_path else ""
             
             # Verify paths and permissions
@@ -239,14 +252,26 @@ def setup_config(translator=None):
                 print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('config.error_checking_linux_paths', error=str(e)) if translator else f'Error checking Linux paths: {str(e)}'}{Style.RESET_ALL}")
             
             # Define all paths using the found cursor directory
+            # Determine sqlite path similarly
+            sqlite_candidates = []
+            if cursor_dir:
+                sqlite_candidates.extend([
+                    os.path.abspath(os.path.join(cursor_dir, "User/globalStorage/state.vscdb")),
+                    os.path.abspath(os.path.join(actual_home, ".config/cursor/User/globalStorage/state.vscdb"))
+                ])
+            else:
+                sqlite_candidates.append(os.path.abspath(os.path.join(actual_home, ".config/cursor/User/globalStorage/state.vscdb")))
+            sqlite_path = next((p for p in sqlite_candidates if os.path.exists(p)), sqlite_candidates[0] if sqlite_candidates else "")
+
+            linux_cursor_base = get_linux_cursor_path()
             default_config['LinuxPaths'] = {
                 'storage_path': storage_path,
-                'sqlite_path': os.path.abspath(os.path.join(cursor_dir, "User/globalStorage/state.vscdb")) if cursor_dir else "",
-                'machine_id_path': os.path.join(cursor_dir, "machineid") if cursor_dir else "",
-                'cursor_path': get_linux_cursor_path(),
+                'sqlite_path': sqlite_path,
+                'machine_id_path': os.path.join(actual_home, ".config/cursor/machineid"),
+                'cursor_path': linux_cursor_base,
                 'updater_path': os.path.join(config_base, "cursor-updater"),
-                'update_yml_path': os.path.join(cursor_dir, "resources/app-update.yml") if cursor_dir else "",
-                'product_json_path': os.path.join(cursor_dir, "resources/app/product.json") if cursor_dir else ""
+                'update_yml_path': os.path.join(linux_cursor_base, "resources/app-update.yml") if linux_cursor_base else "",
+                'product_json_path': os.path.join(linux_cursor_base, "resources/app/product.json") if linux_cursor_base else ""
             }
 
         # Add tempmail_plus configuration

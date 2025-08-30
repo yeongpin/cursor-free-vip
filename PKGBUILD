@@ -8,8 +8,8 @@ pkgdesc="Reset Cursor AI MachineID & Auto Sign Up / In & Bypass Higher Token Lim
 arch=('x86_64')
 url="https://github.com/yeongpin/cursor-free-vip"
 license=('MIT' 'Attribution-NonCommercial-NoDerivatives 4.0 International')
-depends=('python' 'cursor-bin')
-makedepends=('git' 'python' 'pyinstaller' 'uv')
+depends=('python' 'cursor-bin' 'chromium' 'nss' 'gtk3' 'libxss' 'libxtst' 'dbus' 'libnotify' 'ttf-liberation' 'noto-fonts')
+makedepends=('git' 'python' 'pyinstaller' 'uv' 'chromedriver')
 provides=('cursor-free-vip')
 source=("cursor-free-vip::git+https://github.com/yeongpin/cursor-free-vip.git" "https://raw.githubusercontent.com/canmi21/openjlc/refs/heads/main/LICENSE")
 sha256sums=('SKIP' 'SKIP')
@@ -24,6 +24,15 @@ build() {
   uv venv .venv
   source .venv/bin/activate
   uv pip install -r requirements.txt
+  # Ensure DrissionPage chromium dependencies are met on Arch
+  python - <<'EOF'
+import shutil, sys
+for cmd in ['chromium', 'google-chrome-stable', 'google-chrome']:
+    if shutil.which(cmd):
+        print('browser-ok:', cmd)
+        sys.exit(0)
+print('warning: no chromium/chrome found in PATH, runtime may fail', file=sys.stderr)
+EOF
   pyinstaller --clean --noconfirm --onefile main.py --name cursor-free-vip
 }
 
