@@ -1,3 +1,18 @@
+<div align="center" markdown="1">
+   <sup>Special thanks to:</sup>
+   <br>
+   <br>
+   <a href="http://go.warp.dev/cursor-free-vip">
+      <img alt="Warp sponsorship" width="400" src="https://github.com/user-attachments/assets/ab8dd143-b0fd-4904-bdc5-dd7ecac94eae">
+   </a>
+
+### [Warp, the intelligent terminal for developers](http://go.warp.dev/cursor-free-vip)
+[Available for MacOS, Linux, & Windows](http://go.warp.dev/cursor-free-vip)<br>
+
+</div>
+
+---
+
 # ➤ Cursor Free VIP
 
 <div align="center">
@@ -19,10 +34,6 @@
 
 <a href="https://trendshift.io/repositories/13425" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13425" alt="yeongpin%2Fcursor-free-vip | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <br>
-<a href="https://www.buymeacoffee.com/yeongpin" target="_blank">
-      <img src="https://img.buymeacoffee.com/button-api/?text=buy me a coffee&emoji=☕&slug=yeongpin&button_colour=ffda33&font_colour=000000&font_family=Bree&outline_colour=000000&coffee_colour=FFDD00&latest=2" width="160" height='55' alt="Buy Me a Coffee"/>
-</a>
-
 
 <h4>Support Latest 0.49.x Version | 支持最新 0.49.x 版本</h4>
 
