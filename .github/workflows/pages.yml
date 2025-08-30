@@ -1,0 +1,22 @@
+name: Pages Check
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate web exists
+        run: test -d web && ls -la web
+      - name: Check required files
+        run: |
+          test -f wrangler.toml
+          test -f web/index.html
+          test -f web/styles.css
+          test -f web/_headers
+      - name: Print wrangler.toml
+        run: cat wrangler.toml

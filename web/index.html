@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cursor Free VIP</title>
+  <meta name="description" content="Multi-OS utility with docs and downloads." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0f14" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">CFV</div>
+        <a class="brand-name" href="/">Cursor Free VIP</a>
+      </div>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+      <nav class="site-nav" data-collapsible>
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/yeongpin/cursor-free-vip" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <h1>Powerful multi‑platform helper</h1>
+          <p>Supports Windows, macOS, and Linux. Easy setup. Transparent and privacy‑respecting.</p>
+          <div class="cta-row">
+            <a class="button primary" href="https://github.com/yeongpin/cursor-free-vip/releases/latest" target="_blank" rel="noopener">Download</a>
+            <a class="button" href="#install">Quick Install</a>
+          </div>
+        </div>
+        <div class="hero-card" role="img" aria-label="App preview">
+          <div class="card-grid">
+            <div class="card"></div>
+            <div class="card"></div>
+            <div class="card"></div>
+            <div class="card"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="container">
+        <h2>Features</h2>
+        <div class="features-grid">
+          <article class="feature">
+            <h3>Cross‑platform</h3>
+            <p>Works on Windows, macOS, and Linux with consistent behavior.</p>
+          </article>
+          <article class="feature">
+            <h3>Multi‑language</h3>
+            <p>English, 简体中文, 繁體中文, Vietnamese.</p>
+          </article>
+          <article class="feature">
+            <h3>Scriptable</h3>
+            <p>One‑line installers and automation friendly CLI.</p>
+          </article>
+          <article class="feature">
+            <h3>Open source</h3>
+            <p>Auditable and community‑driven improvements.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="section alt">
+      <div class="container">
+        <h2>Install</h2>
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="linux" role="tab" aria-selected="true">Linux/macOS</button>
+          <button class="tab" data-tab="arch" role="tab" aria-selected="false">Arch</button>
+          <button class="tab" data-tab="windows" role="tab" aria-selected="false">Windows</button>
+        </div>
+
+        <div class="tab-panels">
+          <div class="panel active" id="panel-linux" role="tabpanel">
+            <pre><code>curl -fsSL https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/install.sh -o install.sh && chmod +x install.sh && ./install.sh</code></pre>
+          </div>
+          <div class="panel" id="panel-arch" role="tabpanel">
+            <pre><code>yay -S cursor-free-vip-git</code></pre>
+          </div>
+          <div class="panel" id="panel-windows" role="tabpanel">
+            <pre><code>irm https://raw.githubusercontent.com/yeongpin/cursor-free-vip/main/scripts/install.ps1 | iex</code></pre>
+          </div>
+        </div>
+
+        <div class="note">
+          Press Ctrl+C to stop the script. Ensure the app is closed before running the tool.
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="container">
+        <h2>FAQ</h2>
+        <details>
+          <summary>What permissions are required?</summary>
+          <p>Run with administrator privileges for best results.</p>
+        </details>
+        <details>
+          <summary>Is this safe to use?</summary>
+          <p>For learning and research purposes. Please comply with software usage terms.</p>
+        </details>
+        <details>
+          <summary>Where to report issues?</summary>
+          <p>Open an issue on the GitHub repository.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>© <span id="year"></span> Cursor Free VIP</div>
+      <div class="footer-links">
+        <a href="/api/health" rel="nofollow">Status</a>
+        <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">License</a>
+        <a href="https://github.com/yeongpin/cursor-free-vip" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script.js" type="module"></script>
+</body>
+</html>

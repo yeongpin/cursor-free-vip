@@ -1,0 +1,33 @@
+# VCS
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.db
+ENV/
+venv/
+.venv/
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.spec2
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Unneeded assets for runtime
+cursor-source-map/
+images/
+web/

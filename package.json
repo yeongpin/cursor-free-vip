@@ -1,0 +1,9 @@
+{
+  "name": "cursor-free-vip",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Static site served from web/ for Cloudflare Pages; no build step required.",
+  "scripts": {
+    "build": "echo 'No build step required. Static files are in web/'"
+  }
+}
