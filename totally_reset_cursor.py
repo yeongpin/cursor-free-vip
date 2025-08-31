@@ -47,34 +47,34 @@ def get_user_documents_path():
          if sudo_user:
              return os.path.join("/home", sudo_user, "Documents")
          return os.path.join(os.path.expanduser("~"), "Documents")
-     
+
 
 def get_cursor_paths(translator=None) -> Tuple[str, str]:
     """ Get Cursor related paths"""
     system = platform.system()
-    
+
     # Read config file
     config = configparser.ConfigParser()
     config_dir = os.path.join(get_user_documents_path(), ".cursor-free-vip")
     config_file = os.path.join(config_dir, "config.ini")
-    
+
     # Create config directory if it doesn't exist
     if not os.path.exists(config_dir):
         os.makedirs(config_dir)
-    
+
     # Default paths for different systems
     default_paths = {
         "Darwin": "/Applications/Cursor.app/Contents/Resources/app",
         "Windows": os.path.join(os.getenv("LOCALAPPDATA", ""), "Programs", "Cursor", "resources", "app"),
         "Linux": ["/opt/Cursor/resources/app", "/usr/share/cursor/resources/app", os.path.expanduser("~/.local/share/cursor/resources/app")]
     }
-    
+
     if system == "Linux":
         # Look for extracted AppImage directories - with usr structure
         extracted_usr_paths = glob.glob(os.path.expanduser("~/squashfs-root/usr/share/cursor/resources/app"))
         # Check current directory for extraction without home path prefix
         current_dir_paths = glob.glob("squashfs-root/usr/share/cursor/resources/app")
-        
+
         # Add all paths to the Linux paths list
         default_paths["Linux"].extend(extracted_usr_paths)
         default_paths["Linux"].extend(current_dir_paths)
@@ -86,13 +86,13 @@ def get_cursor_paths(translator=None) -> Tuple[str, str]:
                 print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {path} (exists){Style.RESET_ALL}")
             else:
                 print(f"{Fore.RED}{EMOJI['ERROR']} {path} (not found){Style.RESET_ALL}")
-    
+
     # If config doesn't exist, create it with default paths
     if not os.path.exists(config_file):
         for section in ['MacPaths', 'WindowsPaths', 'LinuxPaths']:
             if not config.has_section(section):
                 config.add_section(section)
-        
+
         if system == "Darwin":
             config.set('MacPaths', 'cursor_path', default_paths["Darwin"])
         elif system == "Windows":
@@ -106,12 +106,12 @@ def get_cursor_paths(translator=None) -> Tuple[str, str]:
             else:
                 # If no path exists, use the first one as default
                 config.set('LinuxPaths', 'cursor_path', default_paths["Linux"][0])
-        
+
         with open(config_file, 'w', encoding='utf-8') as f:
             config.write(f)
     else:
         config.read(config_file, encoding='utf-8')
-    
+
     # Get path based on system
     if system == "Darwin":
         section = 'MacPaths'
@@ -121,12 +121,12 @@ def get_cursor_paths(translator=None) -> Tuple[str, str]:
         section = 'LinuxPaths'
     else:
         raise OSError(translator.get('reset.unsupported_os', system=system) if translator else f"不支持的操作系统: {system}")
-    
+
     if not config.has_section(section) or not config.has_option(section, 'cursor_path'):
         raise OSError(translator.get('reset.path_not_configured') if translator else "未配置 Cursor 路徑")
-    
+
     base_path = config.get(section, 'cursor_path')
-    
+
     # For Linux, try to find the first existing path if the configured one doesn't exist
     if system == "Linux" and not os.path.exists(base_path):
         for path in default_paths["Linux"]:
@@ -137,19 +137,19 @@ def get_cursor_paths(translator=None) -> Tuple[str, str]:
                 with open(config_file, 'w', encoding='utf-8') as f:
                     config.write(f)
                 break
-    
+
     if not os.path.exists(base_path):
         raise OSError(translator.get('reset.path_not_found', path=base_path) if translator else f"找不到 Cursor 路徑: {base_path}")
-    
+
     pkg_path = os.path.join(base_path, "package.json")
     main_path = os.path.join(base_path, "out/main.js")
-    
+
     # Check if files exist
     if not os.path.exists(pkg_path):
         raise OSError(translator.get('reset.package_not_found', path=pkg_path) if translator else f"找不到 package.json: {pkg_path}")
     if not os.path.exists(main_path):
         raise OSError(translator.get('reset.main_not_found', path=main_path) if translator else f"找不到 main.js: {main_path}")
-    
+
     return (pkg_path, main_path)
 
 def get_cursor_machine_id_path(translator=None) -> str:
@@ -162,31 +162,31 @@ def get_cursor_machine_id_path(translator=None) -> str:
     config_dir = os.path.join(get_user_documents_path(), ".cursor-free-vip")
     config_file = os.path.join(config_dir, "config.ini")
     config = configparser.ConfigParser()
-    
+
     if os.path.exists(config_file):
         config.read(config_file)
-    
+
     if sys.platform == "win32":  # Windows
         if not config.has_section('WindowsPaths'):
             config.add_section('WindowsPaths')
-            config.set('WindowsPaths', 'machine_id_path', 
+            config.set('WindowsPaths', 'machine_id_path',
                 os.path.join(os.getenv("APPDATA"), "Cursor", "machineId"))
         return config.get('WindowsPaths', 'machine_id_path')
-        
+
     elif sys.platform == "linux":  # Linux
         if not config.has_section('LinuxPaths'):
             config.add_section('LinuxPaths')
             config.set('LinuxPaths', 'machine_id_path',
                 os.path.expanduser("~/.config/cursor/machineid"))
         return config.get('LinuxPaths', 'machine_id_path')
-        
+
     elif sys.platform == "darwin":  # macOS
         if not config.has_section('MacPaths'):
             config.add_section('MacPaths')
             config.set('MacPaths', 'machine_id_path',
                 os.path.expanduser("~/Library/Application Support/Cursor/machineId"))
         return config.get('MacPaths', 'machine_id_path')
-        
+
     else:
         raise OSError(f"Unsupported operating system: {sys.platform}")
 
@@ -225,10 +225,29 @@ def get_workbench_cursor_path(translator=None) -> str:
         extracted_usr_paths = glob.glob(os.path.expanduser("~/squashfs-root/usr/share/cursor/resources/app"))
         # Check current directory for extraction
         current_dir_paths = glob.glob("squashfs-root/usr/share/cursor/resources/app")
-  
-        
+
         paths_map["Linux"]["bases"].extend(extracted_usr_paths)
         paths_map["Linux"]["bases"].extend(current_dir_paths)
+
+        # Only do Nix logic if /nix/store exists
+        if os.path.isdir("/nix/store"):
+            print("Adding nix support")
+            # Get the real path of the installed cursor binary
+            cursor_binary_path = subprocess.check_output("readlink -f $(which cursor)", shell=True).decode().strip()
+
+            # Extract the Nix store path and derive the related app path
+            nix_cursor_path = os.path.join(
+                cursor_binary_path,
+                "../../share/cursor/resources/app"
+            )
+
+            # Normalize the path to handle relative components
+            nix_cursor_path = os.path.realpath(nix_cursor_path)
+
+            if os.path.exists(nix_cursor_path) and os.path.isdir(nix_cursor_path):
+                paths_map["Linux"]["bases"].append(nix_cursor_path)
+            else:
+                raise FileNotFoundError(f"Expected path {nix_cursor_path} does not exist.")
 
         for base in paths_map["Linux"]["bases"]:
             main_path = os.path.join(base, paths_map["Linux"]["main"])
@@ -248,13 +267,13 @@ def get_workbench_cursor_path(translator=None) -> str:
         base_path = paths_map[system]["bases"][0]
         if config.has_section('LinuxPaths') and config.has_option('LinuxPaths', 'cursor_path'):
             base_path = config.get('LinuxPaths', 'cursor_path')
-    
+
     # Get the main path for non-Linux systems or if Linux path wasn't found in the loop
     main_path = os.path.join(base_path, paths_map[system]["main"])
-    
+
     if not os.path.exists(main_path):
         raise OSError(translator.get('reset.file_not_found', path=main_path) if translator else f"未找到 Cursor main.js 文件: {main_path}")
-        
+
     return main_path
 
 def version_check(version: str, min_version: str = "", max_version: str = "", translator=None) -> bool:
@@ -289,7 +308,7 @@ def check_cursor_version(translator) -> bool:
     try:
         pkg_path, _ = get_cursor_paths(translator)
         print(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('reset.reading_package_json', path=pkg_path)}{Style.RESET_ALL}")
-        
+
         try:
             with open(pkg_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -297,32 +316,32 @@ def check_cursor_version(translator) -> bool:
             # If UTF-8 reading fails, try other encodings
             with open(pkg_path, "r", encoding="latin-1") as f:
                 data = json.load(f)
-                
+
         if not isinstance(data, dict):
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.invalid_json_object')}{Style.RESET_ALL}")
             return False
-            
+
         if "version" not in data:
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.no_version_field')}{Style.RESET_ALL}")
             return False
-            
+
         version = str(data["version"]).strip()
         if not version:
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.version_field_empty')}{Style.RESET_ALL}")
             return False
-            
+
         print(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('reset.found_version', version=version)}{Style.RESET_ALL}")
-        
+
         # Check version format
         if not re.match(r"^\d+\.\d+\.\d+$", version):
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.invalid_version_format', version=version)}{Style.RESET_ALL}")
             return False
-            
+
         # Compare versions
         try:
             current = tuple(map(int, version.split(".")))
             min_ver = (0, 45, 0)  # Use tuple directly instead of string
-            
+
             if current >= min_ver:
                 print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {translator.get('reset.version_check_passed', version=version, min_version='0.45.0')}{Style.RESET_ALL}")
                 return True
@@ -332,7 +351,7 @@ def check_cursor_version(translator) -> bool:
         except ValueError as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.version_parse_error', error=str(e))}{Style.RESET_ALL}")
             return False
-            
+
     except FileNotFoundError as e:
         print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('reset.package_not_found', path=pkg_path)}{Style.RESET_ALL}")
         return False
@@ -392,7 +411,7 @@ def modify_workbench_js(file_path: str, translator=None) -> bool:
         if os.path.exists(backup_path):
             os.remove(backup_path)
         shutil.copy2(file_path, backup_path)
-        
+
         # Move temporary file to original position
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -458,10 +477,10 @@ def patch_cursor_get_machine_id(translator) -> bool:
     """Patch Cursor getMachineId function"""
     try:
         print(f"{Fore.CYAN}{EMOJI['INFO']} {translator.get('reset.start_patching')}...{Style.RESET_ALL}")
-        
+
         # Get paths
         pkg_path, main_path = get_cursor_paths(translator)
-        
+
         # Check file permissions
         for file_path in [pkg_path, main_path]:
             if not os.path.isfile(file_path):
@@ -512,10 +531,10 @@ class MachineIDResetter:
         config_dir = os.path.join(get_user_documents_path(), ".cursor-free-vip")
         config_file = os.path.join(config_dir, "config.ini")
         config = configparser.ConfigParser()
-        
+
         if not os.path.exists(config_file):
             raise FileNotFoundError(f"Config file not found: {config_file}")
-        
+
         config.read(config_file, encoding='utf-8')
 
         # Check operating system
@@ -523,7 +542,7 @@ class MachineIDResetter:
             appdata = os.getenv("APPDATA")
             if appdata is None:
                 raise EnvironmentError("APPDATA Environment Variable Not Set")
-            
+
             if not config.has_section('WindowsPaths'):
                 config.add_section('WindowsPaths')
                 config.set('WindowsPaths', 'storage_path', os.path.join(
@@ -532,10 +551,10 @@ class MachineIDResetter:
                 config.set('WindowsPaths', 'sqlite_path', os.path.join(
                     appdata, "Cursor", "User", "globalStorage", "state.vscdb"
                 ))
-                
+
             self.db_path = config.get('WindowsPaths', 'storage_path')
             self.sqlite_path = config.get('WindowsPaths', 'sqlite_path')
-            
+
         elif sys.platform == "darwin":  # macOS
             if not config.has_section('MacPaths'):
                 config.add_section('MacPaths')
@@ -545,17 +564,17 @@ class MachineIDResetter:
                 config.set('MacPaths', 'sqlite_path', os.path.abspath(os.path.expanduser(
                     "~/Library/Application Support/Cursor/User/globalStorage/state.vscdb"
                 )))
-                
+
             self.db_path = config.get('MacPaths', 'storage_path')
             self.sqlite_path = config.get('MacPaths', 'sqlite_path')
-            
+
         elif sys.platform == "linux":  # Linux
             if not config.has_section('LinuxPaths'):
                 config.add_section('LinuxPaths')
                 # Get actual user's home directory
                 sudo_user = os.environ.get('SUDO_USER')
                 actual_home = f"/home/{sudo_user}" if sudo_user else os.path.expanduser("~")
-                
+
                 config.set('LinuxPaths', 'storage_path', os.path.abspath(os.path.join(
                     actual_home,
                     ".config/cursor/User/globalStorage/storage.json"
@@ -564,10 +583,10 @@ class MachineIDResetter:
                     actual_home,
                     ".config/cursor/User/globalStorage/state.vscdb"
                 )))
-                
+
             self.db_path = config.get('LinuxPaths', 'storage_path')
             self.sqlite_path = config.get('LinuxPaths', 'sqlite_path')
-            
+
         else:
             raise NotImplementedError(f"Not Supported OS: {sys.platform}")
 
@@ -603,7 +622,7 @@ class MachineIDResetter:
         """Update machine ID in SQLite database"""
         try:
             print(f"{Fore.CYAN}{EMOJI['INFO']} {self.translator.get('reset.updating_sqlite')}...{Style.RESET_ALL}")
-            
+
             conn = sqlite3.connect(self.sqlite_path)
             cursor = conn.cursor()
 
@@ -620,7 +639,7 @@ class MachineIDResetter:
 
             for key, value in updates:
                 cursor.execute("""
-                    INSERT OR REPLACE INTO ItemTable (key, value) 
+                    INSERT OR REPLACE INTO ItemTable (key, value)
                     VALUES (?, ?)
                 """, (key, value))
                 print(f"{EMOJI['INFO']} {Fore.CYAN} {self.translator.get('reset.updating_pair')}: {key}{Style.RESET_ALL}")
@@ -638,13 +657,13 @@ class MachineIDResetter:
         """Update system-level IDs"""
         try:
             print(f"{Fore.CYAN}{EMOJI['INFO']} {self.translator.get('reset.updating_system_ids')}...{Style.RESET_ALL}")
-            
+
             if sys.platform.startswith("win"):
                 self._update_windows_machine_guid()
                 self._update_windows_machine_id()
             elif sys.platform == "darwin":
                 self._update_macos_platform_uuid(new_ids)
-                
+
             print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {self.translator.get('reset.system_ids_updated')}{Style.RESET_ALL}")
             return True
         except Exception as e:
@@ -671,7 +690,7 @@ class MachineIDResetter:
         except Exception as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('reset.update_windows_machine_guid_failed', error=str(e))}{Style.RESET_ALL}")
             raise
-    
+
     def _update_windows_machine_id(self):
         """Update Windows MachineId in SQMClient registry"""
         try:
@@ -679,7 +698,7 @@ class MachineIDResetter:
             # 1. Generate new GUID
             new_guid = "{" + str(uuid.uuid4()).upper() + "}"
             print(f"{Fore.CYAN}{EMOJI['INFO']} {self.translator.get('reset.new_machine_id')}: {new_guid}{Style.RESET_ALL}")
-            
+
             # 2. Open the registry key
             try:
                 key = winreg.OpenKey(
@@ -694,14 +713,14 @@ class MachineIDResetter:
                     winreg.HKEY_LOCAL_MACHINE,
                     r"SOFTWARE\Microsoft\SQMClient"
                 )
-            
+
             # 3. Set MachineId value
             winreg.SetValueEx(key, "MachineId", 0, winreg.REG_SZ, new_guid)
             winreg.CloseKey(key)
-            
+
             print(f"{Fore.GREEN}{EMOJI['SUCCESS']} {self.translator.get('reset.windows_machine_id_updated')}{Style.RESET_ALL}")
             return True
-            
+
         except PermissionError:
             print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('reset.permission_denied')}{Style.RESET_ALL}")
             print(f"{Fore.YELLOW}{EMOJI['WARNING']} {self.translator.get('reset.run_as_admin')}{Style.RESET_ALL}")
@@ -709,7 +728,7 @@ class MachineIDResetter:
         except Exception as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} {self.translator.get('reset.update_windows_machine_id_failed', error=str(e))}{Style.RESET_ALL}")
             return False
-                    
+
 
     def _update_macos_platform_uuid(self, new_ids):
         """Update macOS Platform UUID"""
@@ -773,7 +792,7 @@ class MachineIDResetter:
             modify_workbench_js(workbench_path, self.translator)
 
             # Check Cursor version and perform corresponding actions
-            
+
             greater_than_0_45 = check_cursor_version(self.translator)
             if greater_than_0_45:
                 print(f"{Fore.CYAN}{EMOJI['INFO']} {self.translator.get('reset.detecting_version')} >= 0.45.0，{self.translator.get('reset.patching_getmachineid')}{Style.RESET_ALL}")
@@ -807,7 +826,7 @@ class MachineIDResetter:
         try:
             # Get the machineId file path
             machine_id_path = get_cursor_machine_id_path()
-            
+
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(machine_id_path), exist_ok=True)
 
