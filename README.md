@@ -70,6 +70,20 @@ For optimal performance, run with privileges and always stay up to date.
 
 * Multi-language support (English, 简体中文, 繁體中文, Vietnamese)<br>多語言支持（英文、简体中文、繁體中文、越南語）<br>
 
+## 🚀 Recent Improvements | 最近改進
+
+* **Enhanced Error Handling**: Robust error handling with detailed logging for better troubleshooting<br>增強的錯誤處理：具有詳細日誌記錄的強大錯誤處理，以便更好地進行故障排除<br>
+
+* **Improved Configuration Management**: Centralized configuration with type validation and better defaults<br>改進的配置管理：集中配置，具有類型驗證和更好的默認值<br>
+
+* **Code Refactoring**: Better code organization with proper typing and documentation<br>代碼重構：通過適當的類型和文檔實現更好的代碼組織<br>
+
+* **Enhanced Process Management**: Better detection and management of Cursor processes across all platforms<br>增強的進程管理：在所有平台上更好地檢測和管理 Cursor 進程<br>
+
+* **Token Management**: Improved token validation, refresh, and extraction logic<br>令牌管理：改進的令牌驗證、刷新和提取邏輯<br>
+
+* **Cross-Platform Compatibility**: Better handling of platform-specific paths and behaviors<br>跨平台兼容性：更好地處理特定於平台的路徑和行為<br>
+
 ## 💻 System Support | 系統支持
 
 | Operating System | Architecture      | Supported |

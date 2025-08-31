@@ -2,34 +2,49 @@
 # This script allows the user to choose which script to run.
 import os
 import sys
-import json
-from logo import print_logo, version
-from colorama import Fore, Style, init
 import locale
 import platform
 import requests
 import subprocess
+import logging
+from colorama import Fore, Style, init
+from typing import Optional, Dict, List, Any, Tuple, Union
+from pathlib import Path
+
+# Initialize colorama
+init(autoreset=True)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
+
+# Import local modules
+from logo import print_logo, version
 from config import get_config, force_update_config
-import shutil
-import re
-from utils import get_user_documents_path  
+from utils import get_user_documents_path
 
 # Add these imports for Arabic support
 try:
     import arabic_reshaper
     from bidi.algorithm import get_display
 except ImportError:
+    logger.warning("Arabic support modules not found")
     arabic_reshaper = None
     get_display = None
 
 # Only import windll on Windows systems
 if platform.system() == 'Windows':
-    import ctypes
-    # Only import windll on Windows systems
-    from ctypes import windll
-
-# Initialize colorama
-init()
+    try:
+        import ctypes
+        from ctypes import windll
+    except ImportError:
+        logger.warning("Windows-specific modules not found")
+        ctypes = None
+        windll = None
 
 # Define emoji and color constants
 EMOJI = {
@@ -53,36 +68,38 @@ EMOJI = {
 }
 
 # Function to check if running as frozen executable
-def is_frozen():
+def is_frozen() -> bool:
     """Check if the script is running as a frozen executable."""
     return getattr(sys, 'frozen', False)
 
 # Function to check admin privileges (Windows only)
-def is_admin():
+def is_admin() -> bool:
     """Check if the script is running with admin privileges (Windows only)."""
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' and ctypes and windll:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin() != 0
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error checking admin privileges: {e}")
             return False
     # Always return True for non-Windows to avoid changing behavior
     return True
 
 # Function to restart with admin privileges
-def run_as_admin():
+def run_as_admin() -> bool:
     """Restart the current script with admin privileges (Windows only)."""
-    if platform.system() != 'Windows':
+    if platform.system() != 'Windows' or not ctypes or not windll:
         return False
         
     try:
         args = [sys.executable] + sys.argv
         
         # Request elevation via ShellExecute
-        print(f"{Fore.YELLOW}{EMOJI['ADMIN']} Requesting administrator privileges...{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}{EMOJI['ADMIN']} {translator.get('admin.requesting_privileges') if translator else 'Requesting administrator privileges...'}{Style.RESET_ALL}")
         ctypes.windll.shell32.ShellExecuteW(None, "runas", args[0], " ".join('"' + arg + '"' for arg in args[1:]), None, 1)
         return True
     except Exception as e:
-        print(f"{Fore.RED}{EMOJI['ERROR']} Failed to restart with admin privileges: {e}{Style.RESET_ALL}")
+        logger.error(f"Failed to restart with admin privileges: {e}")
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('admin.restart_failed', error=str(e)) if translator else f'Failed to restart with admin privileges: {e}'}{Style.RESET_ALL}")
         return False
 
 class Translator:
@@ -687,119 +704,187 @@ def check_latest_version():
         print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('updater.continue_anyway')}{Style.RESET_ALL}")
         return
 
-def main():
-    # Check for admin privileges if running as executable on Windows only
-    if platform.system() == 'Windows' and is_frozen() and not is_admin():
-        print(f"{Fore.YELLOW}{EMOJI['ADMIN']} {translator.get('menu.admin_required')}{Style.RESET_ALL}")
-        if run_as_admin():
-            sys.exit(0)  # Exit after requesting admin privileges
-        else:
-            print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.admin_required_continue')}{Style.RESET_ALL}")
-    
-    print_logo()
-    
-    # Initialize configuration
-    config = get_config(translator)
-    if not config:
-        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.config_init_failed')}{Style.RESET_ALL}")
-        return
-    force_update_config(translator)
-
-    if config.getboolean('Utils', 'enabled_update_check'):
-        check_latest_version()  # Add version check before showing menu
-    print_menu()
-    
-    while True:
-        try:
-            choice_num = 17
-            choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{choice_num}')}: {Style.RESET_ALL}")
-
-            match choice:
-                case "0":
-                    print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exit')}...{Style.RESET_ALL}")
-                    print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
-                    return
-                case "1":
-                    import reset_machine_manual
-                    reset_machine_manual.run(translator)
-                    print_menu()   
-                case "2":
-                    import cursor_register_manual
-                    cursor_register_manual.main(translator)
-                    print_menu()    
-                case "3":
-                    import quit_cursor
-                    quit_cursor.quit_cursor(translator)
-                    print_menu()
-                case "4":
-                    if select_language():
-                        print_menu()
-                    continue
-                case "5":
-                    from oauth_auth import main as oauth_main
-                    oauth_main('google',translator)
-                    print_menu()
-                case "6":
-                    from oauth_auth import main as oauth_main
-                    oauth_main('github',translator)
-                    print_menu()
-                case "7":
-                    import disable_auto_update
-                    disable_auto_update.run(translator)
-                    print_menu()
-                case "8":
-                    import totally_reset_cursor
-                    totally_reset_cursor.run(translator)
-                    # print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.fixed_soon')}{Style.RESET_ALL}")
-                    print_menu()
-                case "9":
-                    import logo
-                    print(logo.CURSOR_CONTRIBUTORS)
-                    print_menu()
-                case "10":
-                    from config import print_config
-                    print_config(get_config(), translator)
-                    print_menu()
-                case "11":
-                    import bypass_version
-                    bypass_version.main(translator)
-                    print_menu()
-                case "12":
-                    import check_user_authorized
-                    check_user_authorized.main(translator)
-                    print_menu()
-                case "13":
-                    import bypass_token_limit
-                    bypass_token_limit.run(translator)
-                    print_menu()
-                case "14":
-                    import restore_machine_id
-                    restore_machine_id.run(translator)
-                    print_menu()
-                case "15":
-                    import delete_cursor_google
-                    delete_cursor_google.main(translator)
-                    print_menu()
-                case "16":
-                    from oauth_auth import OAuthHandler
-                    oauth = OAuthHandler(translator)
-                    oauth._select_profile()
-                    print_menu()
-                case "17":
-                    import manual_custom_auth
-                    manual_custom_auth.main(translator)
-                    print_menu()
-                case _:
-                    print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice')}{Style.RESET_ALL}")
-                    print_menu()
-
-        except KeyboardInterrupt:
-            print(f"\n{Fore.YELLOW}{EMOJI['INFO']}  {translator.get('menu.program_terminated')}{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
+def main() -> None:
+    """Main entry point for the application."""
+    try:
+        # Check for admin privileges if running as executable on Windows only
+        if platform.system() == 'Windows' and is_frozen() and not is_admin():
+            logger.warning("Running without admin privileges on Windows")
+            print(f"{Fore.YELLOW}{EMOJI['ADMIN']} {translator.get('menu.admin_required') if translator else 'Administrator privileges are required for some features'}{Style.RESET_ALL}")
+            if run_as_admin():
+                sys.exit(0)  # Exit after requesting admin privileges
+            else:
+                print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.admin_required_continue') if translator else 'Continuing without administrator privileges. Some features may not work correctly.'}{Style.RESET_ALL}")
+        
+        # Display logo
+        print_logo()
+        
+        # Initialize configuration
+        logger.info("Initializing configuration")
+        config = get_config(translator)
+        if not config:
+            logger.error("Failed to initialize configuration")
+            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.config_init_failed') if translator else 'Failed to initialize configuration'}{Style.RESET_ALL}")
             return
-        except Exception as e:
-            print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.error_occurred', error=str(e))}{Style.RESET_ALL}")
-            print_menu()
+            
+        # Update configuration
+        force_update_config(translator)
+    
+        # Check for updates
+        if config.has_option('Utils', 'enabled_update_check') and config.getboolean('Utils', 'enabled_update_check'):
+            logger.info("Checking for updates")
+            check_latest_version()
+            
+        # Display menu
+        print_menu()
+        
+        # Main menu loop
+        while True:
+            try:
+                choice_num = 17
+                choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}{translator.get('menu.input_choice', choices=f'0-{choice_num}') if translator else f'Enter your choice (0-{choice_num})'}: {Style.RESET_ALL}")
+    
+                # Process menu choice
+                process_menu_choice(choice)
+                
+            except KeyboardInterrupt:
+                logger.info("Program terminated by user (KeyboardInterrupt)")
+                print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.program_terminated') if translator else 'Program terminated by user'}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
+                return
+            except Exception as e:
+                logger.error(f"Unexpected error in main loop: {e}")
+                print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.unexpected_error', error=str(e)) if translator else f'An unexpected error occurred: {e}'}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.please_try_again') if translator else 'Please try again'}{Style.RESET_ALL}")
+                
+    except Exception as e:
+        logger.critical(f"Critical error in main function: {e}")
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.critical_error', error=str(e)) if translator else f'A critical error occurred: {e}'}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.please_restart') if translator else 'Please restart the application'}{Style.RESET_ALL}")
+        return
+
+def process_menu_choice(choice: str) -> None:
+    """Process menu choice and execute corresponding action.
+    
+    Args:
+        choice: User's menu choice
+    """
+    try:
+        match choice:
+            case "0":
+                logger.info("User selected to exit")
+                print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.exit') if translator else 'Exiting'}...{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}{'═' * 50}{Style.RESET_ALL}")
+                sys.exit(0)
+            case "1":
+                logger.info("User selected reset machine manual")
+                import reset_machine_manual
+                reset_machine_manual.run(translator)
+                print_menu()   
+            case "2":
+                logger.info("User selected cursor register manual")
+                import cursor_register_manual
+                cursor_register_manual.main(translator)
+                print_menu()    
+            case "3":
+                logger.info("User selected quit cursor")
+                import quit_cursor
+                quit_cursor.quit_cursor(translator)
+                print_menu()
+            case "4":
+                logger.info("User selected language settings")
+                if select_language():
+                    print_menu()
+                return
+            case "5":
+                logger.info("User selected Google OAuth")
+                from oauth_auth import main as oauth_main
+                oauth_main('google', translator)
+                print_menu()
+            case "6":
+                logger.info("User selected GitHub OAuth")
+                from oauth_auth import main as oauth_main
+                oauth_main('github', translator)
+                print_menu()
+            case "7":
+                logger.info("User selected disable auto update")
+                import disable_auto_update
+                disable_auto_update.run(translator)
+                print_menu()
+            case "8":
+                logger.info("User selected totally reset cursor")
+                import totally_reset_cursor
+                totally_reset_cursor.run(translator)
+                print_menu()
+            case "9":
+                logger.info("User selected view contributors")
+                import logo
+                print(logo.CURSOR_CONTRIBUTORS)
+                print_menu()
+            case "10":
+                logger.info("User selected view config")
+                from config import print_config
+                print_config(get_config(), translator)
+                print_menu()
+            case "11":
+                logger.info("User selected bypass version")
+                import bypass_version
+                bypass_version.main(translator)
+                print_menu()
+            case "12":
+                logger.info("User selected check user authorized")
+                import check_user_authorized
+                check_user_authorized.main(translator)
+                print_menu()
+            case "13":
+                logger.info("User selected bypass token limit")
+                import bypass_token_limit
+                bypass_token_limit.run(translator)
+                print_menu()
+            case "14":
+                logger.info("User selected restore machine ID")
+                import restore_machine_id
+                restore_machine_id.run(translator)
+                print_menu()
+            case "15":
+                logger.info("User selected delete cursor Google")
+                import delete_cursor_google
+                delete_cursor_google.main(translator)
+                print_menu()
+            case "16":
+                logger.info("User selected select profile")
+                from oauth_auth import OAuthHandler
+                oauth = OAuthHandler(translator)
+                oauth._select_profile()
+                print_menu()
+            case "17":
+                logger.info("User selected manual custom auth")
+                import manual_custom_auth
+                manual_custom_auth.main(translator)
+                print_menu()
+            case _:
+                logger.warning(f"Invalid choice: {choice}")
+                print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.invalid_choice') if translator else 'Invalid choice'}{Style.RESET_ALL}")
+                print_menu()
+    except ImportError as e:
+        logger.error(f"Failed to import module: {e}")
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.module_not_found', error=str(e)) if translator else f'Module not found: {e}'}{Style.RESET_ALL}")
+        print_menu()
+    except Exception as e:
+        logger.error(f"Error processing menu choice: {e}")
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.action_failed', error=str(e)) if translator else f'Action failed: {e}'}{Style.RESET_ALL}")
+        print_menu()
 
 if __name__ == "__main__":
-    main()
+    # Initialize translator
+    translator = Translator()
+    
+    try:
+        main()
+    except KeyboardInterrupt:
+        print(f"\n{Fore.YELLOW}{EMOJI['INFO']} {translator.get('menu.program_terminated') if translator else 'Program terminated by user'}{Style.RESET_ALL}")
+        sys.exit(0)
+    except Exception as e:
+        logger.critical(f"Unhandled exception: {e}")
+        print(f"{Fore.RED}{EMOJI['ERROR']} {translator.get('menu.unhandled_exception', error=str(e)) if translator else f'Unhandled exception: {e}'}{Style.RESET_ALL}")
+        sys.exit(1)
