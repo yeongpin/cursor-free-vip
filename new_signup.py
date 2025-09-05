@@ -445,7 +445,7 @@ def handle_verification_code(browser_tab, email_tab, controller, config, transla
                     time.sleep(get_random_wait_time(config, 'verification_retry_wait'))
                     
                     # Visit settings page
-                    print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url')}: https://www.cursor.com/settings{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}🔑 {translator.get('register.visiting_url')}: https://www.cursor.com/dashboard?tab=settings{Style.RESET_ALL}")
                     browser_tab.get("https://www.cursor.com/settings")
                     time.sleep(get_random_wait_time(config, 'settings_page_load_wait'))
                     return True, browser_tab
