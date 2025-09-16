@@ -1,6 +1,7 @@
 import os
 import shutil
 import platform
+import subprocess
 import tempfile
 import glob
 from colorama import Fore, Style, init
@@ -75,6 +76,26 @@ def get_workbench_cursor_path(translator=None) -> str:
         extracted_usr_paths = glob.glob(os.path.expanduser("~/squashfs-root/usr/share/cursor/resources/app"))
             
         paths_map["Linux"]["bases"].extend(extracted_usr_paths)
+
+        # Only do Nix logic if /nix/store exists
+        if os.path.isdir("/nix/store"):
+            print("Adding nix support")
+            # Get the real path of the installed cursor binary
+            cursor_binary_path = subprocess.check_output("readlink -f $(which cursor)", shell=True).decode().strip()
+
+            # Extract the Nix store path and derive the related app path
+            nix_cursor_path = os.path.join(
+                cursor_binary_path,
+                "../../share/cursor/resources/app"
+            )
+
+            # Normalize the path to handle relative components
+            nix_cursor_path = os.path.realpath(nix_cursor_path)
+
+            if os.path.exists(nix_cursor_path) and os.path.isdir(nix_cursor_path):
+                paths_map["Linux"]["bases"].append(nix_cursor_path)
+            else:
+                raise FileNotFoundError(f"Expected path {nix_cursor_path} does not exist.")
 
     if system not in paths_map:
         raise OSError(translator.get('reset.unsupported_os', system=system) if translator else f"不支持的操作系统: {system}")
