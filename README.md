@@ -6,7 +6,7 @@
       <img alt="Warp sponsorship" width="400" src="https://github.com/user-attachments/assets/ab8dd143-b0fd-4904-bdc5-dd7ecac94eae">
    </a>
 
-### [Warp, the intelligent terminal for developers](http://go.warp.dev/cursor-free-vip)
+### [Warp, built for coding with multiple agents.](http://go.warp.dev/cursor-free-vip)
 [Available for MacOS, Linux, & Windows](http://go.warp.dev/cursor-free-vip)<br>
 
 </div>
