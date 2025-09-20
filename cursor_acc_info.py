@@ -55,7 +55,7 @@ class UsageManager:
     @staticmethod
     def get_usage(token: str) -> Optional[Dict]:
         """get usage"""
-        url = f"https://www.{Config.NAME_LOWER}.com/api/usage"
+       url = f"https://{Config.NAME_LOWER}.com/api/usage"
         headers = Config.BASE_HEADERS.copy()
         headers.update({"Cookie": f"Workos{Config.NAME_CAPITALIZE}SessionToken=user_01OOOOOOOOOOOOOOOOOOOOOOOO%3A%3A{token}"})
         try:
